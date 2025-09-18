@@ -61,12 +61,21 @@ enum {
 
 void print_clear();
 void print_char(char character);
-void print_str(char* string);
+void brew_str(const char* string);
 void print_set_color(uint8_t foreground, uint8_t background);
 void print_init_palette();
 void print_set_palette_color(uint8_t index, uint8_t red, uint8_t green, uint8_t blue);
 void print_load_palette(const ColorPalette* palette);
 
 // Integer printing functions
-void print_int(int number);
+void brew_int(int number);
 void print_uint(unsigned int number);
+
+// Backspace handling
+void print_backspace(void);
+
+// Cursor control functions
+void print_get_cursor_pos(size_t* row, size_t* col);
+void print_set_cursor_pos(size_t row, size_t col);
+void print_enable_cursor(void);
+void print_disable_cursor(void);

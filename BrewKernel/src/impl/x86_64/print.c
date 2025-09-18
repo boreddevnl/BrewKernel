@@ -147,6 +147,10 @@ void print_clear() {
     for (size_t i = 0; i < NUM_ROWS; i++) {
         clear_row(i);
     }
+    // Reset cursor to top-left corner
+    row = 0;
+    col = 0;
+    print_set_cursor_pos(0, 0);
 }
 
 // Handle newline by moving cursor to start of next line
@@ -156,6 +160,7 @@ void print_newline() {
 
     if (row < NUM_ROWS - 1) {
         row++;
+        print_set_cursor_pos(row, col);  // Update hardware cursor position
         return;
     }
 
@@ -191,10 +196,11 @@ void print_char(char character) {
     };
 
     col++;
+    print_set_cursor_pos(row, col);  // Update hardware cursor position
 }
 
 // Print a null-terminated string
-void print_str(char* str) {
+void brew_str(const char* str) {
     for (size_t i = 0; 1; i++) {
         char character = (uint8_t) str[i];
 
@@ -236,11 +242,89 @@ void print_uint(unsigned int number) {
 }
 
 // Convert signed integer to string and print it
-void print_int(int number) {
+void brew_int(int number) {
     if (number < 0) {
         print_char('-');
         print_uint(-number);
     } else {
         print_uint(number);
     }
+}
+
+// Get the current cursor position
+void print_get_cursor_pos(size_t* cur_row, size_t* cur_col) {
+    *cur_row = row;
+    *cur_col = col;
+}
+
+// Set the cursor position
+void print_set_cursor_pos(size_t new_row, size_t new_col) {
+    if (new_row >= NUM_ROWS) new_row = NUM_ROWS - 1;
+    if (new_col >= NUM_COLS) new_col = NUM_COLS - 1;
+    
+    row = new_row;
+    col = new_col;
+    
+    // Calculate linear offset
+    uint16_t pos = row * NUM_COLS + col;
+    
+    // Update hardware cursor
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+}
+
+// Enable the hardware cursor
+void print_enable_cursor(void) {
+    // Get current cursor shape
+    outb(0x3D4, 0x0A);
+    uint8_t cursor_start = inb(0x3D5) & 0xC0;  // Preserve top bits
+    
+    // Set cursor start line (usually 13)
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, cursor_start | 13);
+    
+    // Set cursor end line (usually 14)
+    outb(0x3D4, 0x0B);
+    outb(0x3D5, 14);
+}
+
+// Disable the hardware cursor
+void print_disable_cursor(void) {
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, 0x20);
+}
+
+// Handle backspace by moving cursor back and clearing the character
+void print_backspace(void) {
+    if (col > 0) {
+        // Move back one column on current line
+        col--;
+    } else if (row > 0) {
+        // Move to end of previous line
+        row--;
+        col = NUM_COLS - 1;
+        
+        // Find the last non-space character on the previous line
+        while (col > 0 && buffer[col + NUM_COLS * row].character == ' ') {
+            col--;
+        }
+        // Move one past the last character
+        if (buffer[col + NUM_COLS * row].character != ' ') {
+            col++;
+        }
+    } else {
+        // At beginning of first line, nothing to do
+        return;
+    }
+
+    // Clear the character at current position
+    buffer[col + NUM_COLS * row] = (struct Char) {
+        character: ' ',
+        color: color,
+    };
+
+    // Update hardware cursor position
+    print_set_cursor_pos(row, col);
 }
