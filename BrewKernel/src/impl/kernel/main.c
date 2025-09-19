@@ -30,6 +30,7 @@
 #include "APPS/about.h"
 #include "APPS/man.h"
 #include "APPS/license.h"
+#include "APPS/uptime.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -102,8 +103,10 @@ static void process_command(void) {
         print_clear();
         brew_str("BrewKernel CLI v1.0\nType HELP for a list of available commands.\n");
     }
-
-        else if (strcmp_kernel(cmd_upper, "CLEAR") == 0) {
+    else if (strcmp_kernel(cmd_upper, "UPTIME") == 0) {
+        display_uptime();
+    }
+    else if (strcmp_kernel(cmd_upper, "CLEAR") == 0) {
         print_clear();
     }
     else if (strcmp_kernel(cmd_upper, "EXIT") == 0) {

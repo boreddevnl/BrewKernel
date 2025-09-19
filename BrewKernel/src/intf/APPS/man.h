@@ -57,6 +57,7 @@ const char* manual_pages[] = {
     "         BrewKernel is distributed. Use UP/DOWN to scroll, 'q' to quit.",
     "      The screen will be cleared and the welcome message reprinted.",
     "",
+    "UPTIME: Shows how long the system has been running since boot.",
     "--- End of Manual ---"
 };
 const int manual_num_lines = sizeof(manual_pages) / sizeof(char*);
@@ -68,11 +69,14 @@ static void show_manual() {
     while (1) {
         if (needs_redraw) {
             print_clear();
+            print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
             for (int i = 0; i < 24 && (top_line + i) < manual_num_lines; i++) {
                 brew_str(manual_pages[top_line + i]);
                 brew_str("\n");
             }
+            print_set_color(PRINT_INDEX_15, PRINT_INDEX_9);
             brew_str("-- (Up/Down to scroll, 'q' to quit) --");
+            print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
             needs_redraw = 0;
         }
 
@@ -82,7 +86,10 @@ static void show_manual() {
         unsigned char sc = read_scan_code(); // Now read the key
         if (sc == 0x48 && top_line > 0) { top_line--; needs_redraw = 1; } // Up Arrow
         else if (sc == 0x50 && (top_line + 24) < manual_num_lines) { top_line++; needs_redraw = 1; } // Down Arrow
-        else if (scan_code_to_ascii(sc) == 'q') { break; }
+        else if (scan_code_to_ascii(sc) == 'q') { 
+            print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
+            break; 
+        }
 
         brewing(10000000); // Delay to handle keyboard typematic rate (key-repeat)
     }

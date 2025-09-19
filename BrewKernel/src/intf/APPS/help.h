@@ -13,6 +13,7 @@ static void display_help() {
     brew_str("  MATH    - Perform basic arithmetic\n");
     brew_str("  MAN     - Show the detailed user manual\n");
     brew_str("  LICENSE - Display the GNU GPLv3 license\n");
+    brew_str("  UPTIME  - Show how long the system has been running\n");
 }
 
 #endif // APPS_HELP_H
