@@ -199,7 +199,7 @@ Basic IDT setup with handlers for:
   - Displays hours, minutes, and seconds
   - Handles day wraparound
 
-### any of the above could be outdated, refer to the MANUAL (MAN command in CLI) for updated information.
+### any of the above could be outdated, refer to the MANUAL (MAN command in CLI) or the [online user manual](https://brew.boreddev.nl/manual.html) for updated information.
 
 
 
