@@ -14,6 +14,16 @@ Brew Kernel is a simple x86_64 kernel that demonstrates basic OS concepts. It fe
 - ASCII character display demo
 - Integer output support with signed and unsigned number handling
 - Ability to run on actual x86_64 hardware
+- Interactive Command Line Interface (CLI) with the following commands:
+  - HELP - Display list of available commands
+  - DATE - Display current date and time with timezone support
+  - MATH - Basic arithmetic calculator
+  - ABOUT - Display system information
+  - MAN - Show detailed user manual
+  - CLEAR - Clear the screen
+  - LICENSE - Display GNU GPLv3 license
+  - UPTIME - Show system uptime
+  - EXIT - Return to regular typing mode
 
 
 ## Prerequisites
@@ -96,8 +106,25 @@ Or run Brew on actual hardware. </br>
 ### VGA Text Mode
 
 - Resolution: 80x25 characters
-- 16-color palette support
+- 16-color palette support with RGB customization
 - Memory mapped at 0xB8000
+- Hardware cursor with:
+  - Configurable cursor shape (start and end lines)
+  - Enable/disable functionality
+  - Position tracking and automatic updating
+- Automatic screen scrolling when bottom is reached
+- Support for special characters (newline, backspace)
+- Text wrapping at screen boundaries
+
+### Text Input & Display
+
+- 256-character input buffer for commands
+- Backspace handling with proper cursor movement
+- Support for case-insensitive commands
+- Automatic line wrapping for long text
+- Color attributes for foreground and background
+- Scroll support for long documents (license, manual)
+- Command history buffer (current command)
 
 ### Integer Output Support
 
@@ -106,6 +133,8 @@ Or run Brew on actual hardware. </br>
 - Base-10 (decimal) output format
 - Automatic buffer management for any integer size
 - Numbers automatically wrapped at screen boundaries
+- Zero-padding support for formatted output
+- Proper handling of integer overflow
 
 ### Interrupts
 
@@ -113,6 +142,66 @@ Basic IDT setup with handlers for:
 - Division by Zero (Vector 0)
 - Debug Exception (Vector 1)
 - Page Fault (Vector 14)
+
+### Keyboard Input
+
+- PS/2 keyboard driver with full scan code support
+- Shift key state tracking for uppercase and special characters
+- Backspace handling with proper cursor movement
+- ASCII character mapping with support for printable characters
+- Key repeat rate control for smooth typing experience
+- Hardware cursor support with enable/disable functionality
+
+### Real-Time Clock & Timezone Support
+
+- RTC driver for reading current date and time
+- BCD to binary conversion for accurate timekeeping
+- Comprehensive timezone database covering major regions:
+  - North America (UTC-10 to UTC-5)
+  - South America (UTC-5 to UTC-3)
+  - Europe (UTC+1 to UTC+3)
+  - Asia (UTC+5:30 to UTC+9)
+  - Oceania (UTC+10 to UTC+12)
+  - Africa (UTC+0 to UTC+3)
+- Interactive timezone selection by continent and region
+- Support for half-hour timezone offsets (e.g., UTC+5:30)
+- System uptime tracking
+
+### Built-in Applications
+
+- Calculator (MATH command)
+  - Basic arithmetic operations (+, -, *, /)
+  - Integer math with proper handling of negative numbers
+  - Interactive user input with validation
+
+- System Information (ABOUT command)
+  - Displays kernel version and build date
+  - Shows architecture details (x86_64)
+  - Reports compiler type and version
+  - Includes ASCII art logo with color support
+
+- Manual Viewer (MAN command)
+  - Comprehensive documentation with scrolling support
+  - Navigation using arrow keys
+  - Organized sections for features and commands
+
+- License Viewer (LICENSE command)
+  - Full GNU GPLv3 license text
+  - Paginated display with scrolling
+  - Easy navigation with arrow keys
+
+- Date/Time Tool (DATE command)
+  - Current date and time display
+  - Interactive timezone selection
+  - Support for all major global regions
+
+- System Monitor (UPTIME command)
+  - Tracks system runtime since boot
+  - Displays hours, minutes, and seconds
+  - Handles day wraparound
+
+### any of the above could be outdated, refer to the MANUAL (MAN command in CLI) for updated information.
+
 
 
 ###
