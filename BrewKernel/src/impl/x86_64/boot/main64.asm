@@ -37,6 +37,10 @@ long_mode_start:
     mov fs, ax      ; Extra Segment 2
     mov gs, ax      ; Extra Segment 3
 
+    ; Multiboot info pointer is in EBX (32-bit register)
+    ; Move it to RDI for the first argument of kernel_main (64-bit register)
+    mov edi, ebx
+
     ; Call the C kernel main function
     call kernel_main
     hlt            ; Halt the CPU if kernel_main returns

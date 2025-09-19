@@ -23,4 +23,6 @@ extern char scan_code_to_ascii(unsigned char scan_code);
 // Returns 1 if shift is pressed, 0 otherwise
 extern int is_shift_pressed(void);
 
+void brewing(int iterations);
+
 #endif // KEYBOARD_H

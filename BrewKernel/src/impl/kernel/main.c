@@ -22,6 +22,14 @@
 
 #include "print.h"
 #include "keyboard.h"
+#include "rtc.h"
+#include "timezones.h"
+#include "APPS/date.h"
+#include "APPS/help.h"
+#include "APPS/math.h"
+#include "APPS/about.h"
+#include "APPS/man.h"
+#include "APPS/license.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -34,8 +42,27 @@ static int strcmp_kernel(const char *s1, const char *s2) {
 
 // CLI state and buffer
 static char command_buffer[256];
-static int buffer_pos = 0;
+int buffer_pos = 0;
+
 static int in_cli_mode = 0;
+static int timezone_offset_h = 0;
+static int timezone_offset_m = 0;
+
+// Simple delay function
+void brewing(int iterations) {
+    for (volatile int i = 0; i < iterations; i++) {
+        __asm__ __volatile__("nop");
+    }
+}
+
+
+
+
+// --- License Viewer ---
+
+
+
+
 
 // Function to process CLI commands
 static void process_command(void) {
@@ -54,164 +81,28 @@ static void process_command(void) {
     
     // Process commands
     if (strcmp_kernel(cmd_upper, "HELP") == 0) {
-        brew_str("\nAvailable commands:\n");
-        brew_str("  HELP    - Display this help message\n");
-        brew_str("  EXIT    - Exit CLI mode and return to regular typing\n");
-        brew_str("  CLEAR   - Clear the screen\n");
-        brew_str("  ABOUT   - Display system information\n");
-        brew_str("  MATH    - Perform basic arithmetic\n");
+        display_help();
+    }
+    else if (strcmp_kernel(cmd_upper, "DATE") == 0) {
+        date_command(&timezone_offset_h, &timezone_offset_m);
     }
     else if (strcmp_kernel(cmd_upper, "MATH") == 0) {
-        brew_str("\nMath Calculator\n");
-        brew_str("Choose operation:\n");
-        brew_str("1. Addition (+)\n");
-        brew_str("2. Subtraction (-)\n");
-        brew_str("3. Multiplication (*)\n");
-        brew_str("4. Division (/)\n");
-        brew_str("\nEnter operation number: ");
-        
-        // Clear buffer for new input
-        buffer_pos = 0;
-        
-        // Wait for operation choice
-        while (1) {
-            if (check_keyboard()) {
-                unsigned char scan_code = read_scan_code();
-                char ascii_char = scan_code_to_ascii(scan_code);
-                
-                if (ascii_char >= '1' && ascii_char <= '4') {
-                    print_char(ascii_char);
-                    char operation = ascii_char;
-                    brew_str("\nEnter first number: ");
-                    
-                    // Get first number
-                    buffer_pos = 0;
-                    int first_num = 0;
-                    while (1) {
-                        if (check_keyboard()) {
-                            scan_code = read_scan_code();
-                            ascii_char = scan_code_to_ascii(scan_code);
-                            
-                            if (ascii_char >= '0' && ascii_char <= '9') {
-                                print_char(ascii_char);
-                                first_num = first_num * 10 + (ascii_char - '0');
-                            } else if (ascii_char == '\n' || ascii_char == '\r') {
-                                break;
-                            }
-                        }
-                    }
-                    
-                    brew_str("\nEnter second number: ");
-                    
-                    // Get second number
-                    buffer_pos = 0;
-                    int second_num = 0;
-                    while (1) {
-                        if (check_keyboard()) {
-                            scan_code = read_scan_code();
-                            ascii_char = scan_code_to_ascii(scan_code);
-                            
-                            if (ascii_char >= '0' && ascii_char <= '9') {
-                                print_char(ascii_char);
-                                second_num = second_num * 10 + (ascii_char - '0');
-                            } else if (ascii_char == '\n' || ascii_char == '\r') {
-                                break;
-                            }
-                        }
-                    }
-                    
-                    brew_str("\nResult: ");
-                    switch (operation) {
-                        case '1':
-                            brew_str("\n");
-                            brew_int(first_num);
-                            brew_str(" + ");
-                            brew_int(second_num);
-                            brew_str(" = ");
-                            brew_int(first_num + second_num);
-                            break;
-                        case '2':
-                            brew_str("\n");
-                            brew_int(first_num);
-                            brew_str(" - ");
-                            brew_int(second_num);
-                            brew_str(" = ");
-                            brew_int(first_num - second_num);
-                            break;
-                        case '3':
-                            brew_str("\n");
-                            brew_int(first_num);
-                            brew_str(" * ");
-                            brew_int(second_num);
-                            brew_str(" = ");
-                            brew_int(first_num * second_num);
-                            break;
-                        case '4':
-                            if (second_num == 0) {
-                                brew_str("Error: Division by zero!\n");
-                            } else {
-                                brew_str("\n");
-                                brew_int(first_num);
-                                brew_str(" / ");
-                                brew_int(second_num);
-                                brew_str(" = ");
-                                brew_int(first_num / second_num);
-                            }
-                            break;
-                    }
-                    brew_str("\n");
-                    break;
-                }
-            }
-        }
+        math_cmd();
     }
     else if (strcmp_kernel(cmd_upper, "ABOUT") == 0) {
-        brew_str("\nSystem Information:\n");
-        print_set_color(PRINT_INDEX_1, PRINT_INDEX_0);
-        brew_str("( (\n");
-        print_set_color(PRINT_INDEX_2, PRINT_INDEX_0);  
-        brew_str("    ) )\n");
-        print_set_color(PRINT_INDEX_3, PRINT_INDEX_0);  
-        brew_str("  ........\n");
-        print_set_color(PRINT_INDEX_4, PRINT_INDEX_0); 
-        brew_str("  |      |]\n");
-        print_set_color(PRINT_INDEX_5, PRINT_INDEX_0); 
-        brew_str("  \\      /\n");
-        print_set_color(PRINT_INDEX_9, PRINT_INDEX_0); 
-        brew_str("   `----'\n\n");
-        print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
-
-      print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
-        brew_str("Brew kernel v2.1\n");
-        brew_str("Copyright (C) 2024-2025 boreddevhq.\n");
-        brew_str("Build: ");
-        brew_str(__DATE__);
-        brew_str(" ");
-        brew_str(__TIME__);
-        brew_str("\n");
-        brew_str("Architecture: ");
-        #if defined(__x86_64__) || defined(_M_X64)
-            brew_str("x86_64");
-        #elif defined(__i386__) || defined(_M_IX86)
-            brew_str("x86");
-        #else
-            brew_str("Unknown Architecture");
-        #endif
-        brew_str("\n");
-        brew_str("Compiler: ");
-        #if defined(__clang__)
-            brew_str("Clang/LLVM ");
-            brew_str(__clang_version__);
-        #elif defined(__GNUC__)
-            brew_str("GCC ");
-            brew_str(__VERSION__);
-        #else
-            brew_str("Unknown Compiler");
-        #endif
-        brew_str("\n\n");
-
-
+        display_about();
     }
+    else if (strcmp_kernel(cmd_upper, "MAN") == 0) {
+        show_manual();
+        print_clear();
+        brew_str("BrewKernel CLI v1.0\nType HELP for a list of available commands.\n");
+    }
+    else if (strcmp_kernel(cmd_upper, "LICENSE") == 0) {
+        show_license();
+        print_clear();
+        brew_str("BrewKernel CLI v1.0\nType HELP for a list of available commands.\n");
+    }
+
         else if (strcmp_kernel(cmd_upper, "CLEAR") == 0) {
         print_clear();
     }
@@ -231,7 +122,7 @@ static void process_command(void) {
         print_set_color(PRINT_INDEX_4, PRINT_INDEX_0); 
         brew_str("  |      |]\n");
         print_set_color(PRINT_INDEX_5, PRINT_INDEX_0); 
-        brew_str("  \\      /\n");
+        brew_str("  \      /\n");
         print_set_color(PRINT_INDEX_9, PRINT_INDEX_0); 
         brew_str("   `----'\n\n");
         print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
@@ -287,13 +178,6 @@ static void process_command(void) {
     brew_str("\n> ");
 }
 
-static inline void brewing(int iterations) {
-    for (volatile int i = 0; i < iterations; i++) {
-        __asm__ __volatile__("nop");
-    }
-}
-
-
 // main kernel section,
 // do not remove data, only add if needed.
 // This is kept for documentation and debugging.
@@ -327,7 +211,7 @@ void kernel_main() {
         print_set_color(PRINT_INDEX_4, PRINT_INDEX_0); 
         brew_str("  |      |]\n");
         print_set_color(PRINT_INDEX_5, PRINT_INDEX_0); 
-        brew_str("  \\      /\n");
+        brew_str("  \      /\n");
         print_set_color(PRINT_INDEX_9, PRINT_INDEX_0); 
         brew_str("   `----'\n\n");
         print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
@@ -368,7 +252,6 @@ void kernel_main() {
             brew_str("Unknown Compiler");
         #endif
         brew_str("\n\n");
-
 
 
     
