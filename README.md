@@ -31,7 +31,7 @@ Brew Kernel is a simple x86_64 kernel that demonstrates basic OS concepts. It fe
 To build the kernel, you'll need Docker installed on your system. The build environment is containerized to ensure consistency across different systems.
 
 ## Building
-
+### Don't want to compile it yourself? grab the [latest "stable" version](https://github.com/BoredDevHQ/BrewKernel/tree/main/BrewKernel/dist/x86_64)
 1. First, build the Docker container for the build environment:
 
 ```sh
