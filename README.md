@@ -226,3 +226,26 @@ Basic IDT setup with handlers for:
 Copyright (C) 2024-2025 boreddevhq
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+NOTICE
+------
+
+This product includes software developed by Chris ("boreddevhq") as part of the BrewKernel project.
+
+Copyright (C) 2024–2025 Chris / boreddevhq
+
+All source files in this repository contain copyright and license
+headers that must be preserved in redistributions and derivative works.
+
+If you distribute or modify this project (in whole or in part),
+you MUST:
+
+  - Retain all copyright and license headers at the top of each file.
+  - Include this NOTICE file along with any redistributions or
+    derivative works.
+  - Provide clear attribution to the original author in documentation
+    or credits where appropriate.
+
+The above attribution requirements are informational and intended to
+ensure proper credit is given. They do not alter or supersede the
+terms of the GNU General Public License (GPL), which governs this work.
