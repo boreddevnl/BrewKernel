@@ -47,6 +47,8 @@ const char* manual_pages[] = {
     "",
     "DATE: Displays the current date and time, with an option to select your",
     "      timezone.",
+    "IREADTHEMANUAL: Wow. You actually read the manual. Run this command",
+    "      for a special surprise!",
     "",
     ": A simple calculator for basic arithmetic operations (add, subtract,",
     "      multiply, divide) on integers.",

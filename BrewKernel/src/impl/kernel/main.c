@@ -32,6 +32,8 @@
 #include "APPS/license.h"
 #include "APPS/uptime.h"
 #include "APPS/doom.h"
+#include "APPS/blind.h"
+#include "APPS/readtheman.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -183,10 +185,16 @@ static void process_command(void) {
     }
     else if (strcmp_kernel(cmd_upper, "DOOM") == 0) {
         doom();
+    }
+    else if (strcmp_kernel(cmd_upper, "BLIND") == 0) {
+        blindme();
     }    
     else if (strcmp_kernel(cmd_upper, "CLEAR") == 0) {
         print_clear();
     }
+    else if (strcmp_kernel(cmd_upper, "IREADTHEMANUAL") == 0) {
+        nerd();
+    }    
     else if (strcmp_kernel(cmd_upper, "EXIT") == 0) {
         in_cli_mode = 0;
         print_clear();
