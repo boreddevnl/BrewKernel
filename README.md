@@ -25,6 +25,7 @@ Brew Kernel is a simple x86_64 kernel that demonstrates basic OS concepts. It fe
   - UPTIME - Show system uptime
   - EXIT - Return to regular typing mode
   - TXTEDIT - text editor, files saved to RAM
+  - BEEP - beeps using speaker output.
 
 # either follow the instructions below, or follow the [user manual](https://brew.boreddev.nl/manual.html)
 ## Prerequisites
