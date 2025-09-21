@@ -31,6 +31,8 @@ static void display_help() {
     brew_str("  MAN     - Show the detailed user manual\n");
     brew_str("  LICENSE - Display the GNU GPLv3 license\n");
     brew_str("  UPTIME  - Show how long the system has been running\n");
+    brew_str("  BEEP    - Makes a beep sound using the PC speaker\n");
+    brew_str("  TXTEDIT - Open the text editor\n");
 }
 
 #endif // APPS_HELP_H

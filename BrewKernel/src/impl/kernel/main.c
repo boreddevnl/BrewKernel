@@ -24,6 +24,8 @@
 #include "keyboard.h"
 #include "rtc.h"
 #include "timezones.h"
+// Applications (Extensions) includes
+#include "APPS/txtedit.h"
 #include "APPS/date.h"
 #include "APPS/help.h"
 #include "APPS/math.h"
@@ -34,6 +36,7 @@
 #include "APPS/doom.h"
 #include "APPS/blind.h"
 #include "APPS/readtheman.h"
+#include "APPS/beep.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -197,7 +200,19 @@ static void process_command(void) {
     }
     else if (strcmp_kernel(cmd_upper, "IREADTHEMANUAL") == 0) {
         nerd();
-    }    
+    }
+    else if (strcmp_kernel(cmd_upper, "WHOAMI") == 0) {
+        brew_str("\n");
+        brew_str("idk");
+    }  
+    else if (strcmp_kernel(cmd_upper, "BEEP") == 0) {
+        beep_command();
+    }
+    else if (strcmp_kernel(cmd_upper, "TXTEDIT") == 0) {
+        txtedit_run();
+        print_clear();
+    }
+
     else if (strcmp_kernel(cmd_upper, "EXIT") == 0) {
         in_cli_mode = 0;
         print_clear();
@@ -259,7 +274,7 @@ static void process_command(void) {
 
         // Print CLI instruction
         brew_str("Type 'CLI' and press Enter to start the command line interface...\n");
-        brew_str("> ");
+        brew_str("brew> ");
         buffer_pos = 0;
         return;
     } else if (buffer_pos > 0) {
@@ -280,7 +295,6 @@ void kernel_main() {
     print_init_palette();
 
     print_set_palette_color(1, 0, 113, 255);   // Blue
-    print_set_palette_color(1, 108, 198, 74);   // Green
     print_set_palette_color(2, 245, 194, 45);   // Yellow
     print_set_palette_color(3, 255, 129, 63);   // Orange
     print_set_palette_color(4, 237, 28, 36);    // Red
@@ -349,7 +363,7 @@ void kernel_main() {
 
     brew_str("Welcome to Brew kernel!\n");
     brew_str("Type 'CLI' and press Enter to start the command line interface...\n");
-    brew_str("> ");
+    brew_str("brew> ");
     print_enable_cursor();  // Enable the hardware cursor
     
     while (1) {
@@ -388,7 +402,7 @@ void kernel_main() {
                                 in_cli_mode = 1;
                                 print_clear();
                                 clistart();
-                                brew_str("> ");
+                                brew_str("brew> ");
                                 buffer_pos = 0;
                             } else {
                                 brew_str("\n");

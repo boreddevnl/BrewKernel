@@ -18,6 +18,7 @@
 #ifndef APPS_NERD_H
 #define APPS_NERD_H
 
+#include "../io.h"
 #include "print.h"
 
 static void nerd() {
@@ -26,6 +27,16 @@ static void nerd() {
     brew_str("Fuck you.\n");
     brewing(5000000000);
     
+
+    // Set the PIT to the desired frequency (1000 Hz for high pitch)
+    outb(0x43, 0xB6);  // Command byte: channel 2, mode 3, binary
+    int frequency = 1000;
+    int divisor = 1193180 / frequency;
+    outb(0x42, divisor & 0xFF);
+    outb(0x42, (divisor >> 8) & 0xFF);
+
+    outb(0x61, inb(0x61) | 0x03);   
+     
     for(int i = 0; i < 1000000000000000000000000000; i++) {  
         print_set_color(PRINT_INDEX_0, PRINT_INDEX_15); // black on white
         print_clear();

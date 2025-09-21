@@ -64,6 +64,14 @@ const char* manual_pages[] = {
     "",
     "DATE: Displays the current date and time, with an option to select your",
     "      timezone.",
+    "",
+    "TXTEDIT: A simple text editor that stores documents in RAM. Features:",
+    "      - Create and edit multiple text files",
+    "      - Files are preserved between editor sessions (until reboot)",
+    "      - Navigate with arrow keys",
+    "      - Save/load files with custom names",
+    "      - ESC to exit (with save prompt)",
+    "",
     "IREADTHEMANUAL: Wow. You actually read the manual. Run this command",
     "      for a special surprise!",
     "",
@@ -76,10 +84,10 @@ const char* manual_pages[] = {
     "",
     "LICENSE: Displays the full GNU General Public License v3, under which",
     "         BrewKernel is distributed. Use UP/DOWN to scroll, 'q' to quit.",
-    "      The screen will be cleared and the welcome message reprinted.",
     "",
     "UPTIME: Shows how long the system has been running since boot.",
     "DOOM: omg DOOM?!",
+    "BEEP: Makes a beep sound using the PC speaker.",
     "--- End of Manual ---"
 };
 const int manual_num_lines = sizeof(manual_pages) / sizeof(char*);
