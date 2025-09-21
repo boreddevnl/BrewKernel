@@ -283,7 +283,7 @@ static void process_command(void) {
     
     // Reset buffer and show prompt
     buffer_pos = 0;
-    brew_str("\n> ");
+    brew_str("\nbrew> ");
 }
 
 // main kernel section,
@@ -293,6 +293,9 @@ void kernel_main() {
     print_clear();
     
     print_init_palette();
+    
+    // Initialize uptime counter at boot
+    init_uptime();
 
     print_set_palette_color(1, 0, 113, 255);   // Blue
     print_set_palette_color(2, 245, 194, 45);   // Yellow

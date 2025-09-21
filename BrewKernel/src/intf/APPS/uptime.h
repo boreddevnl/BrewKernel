@@ -27,7 +27,7 @@ static int boot_time_min = -1;
 static int boot_time_sec = -1;
 
 // Initialize boot time
-static void init_uptime(void) {
+void init_uptime(void) {
     if (boot_time_hour == -1) {
         int year, month, day;
         get_datetime(&year, &month, &day, &boot_time_hour, &boot_time_min, &boot_time_sec);
