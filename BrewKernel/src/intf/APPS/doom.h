@@ -29,8 +29,10 @@ static void doom() {
     brew_str("""| |/ / \\   / \\   /| | V | |\n""");
     brew_str("""| ' /   \\_/   \\_/ \\_|   | |\n""");
     brew_str("""|__/                    \\_|\n""");
-    brew_str("yes it's 'DOOM'. As in the text.\n");
+    brew_str("yes it's 'DOOM'. As in the text. \n");
+    brew_str("pretty please port DOOM for me <3 \n");
 }
 
 #endif // APPS_DOOM_H
 
+// someone please make a doom port for brew cause i'm too stupid for that :3
