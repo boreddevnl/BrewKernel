@@ -37,6 +37,8 @@
 #include "APPS/blind.h"
 #include "APPS/readtheman.h"
 #include "APPS/beep.h"
+#include "APPS/shutdown.h"
+#include "APPS/reboot.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -57,7 +59,6 @@ static char command_history[HISTORY_SIZE][256];
 static int history_count = 0;      // Number of commands in history
 static int history_current = -1;    // Current position in history while navigating
 static int history_newest = -1;     // Index of the most recent command
-
 static int in_cli_mode = 0;
 static int timezone_offset_h = 0;
 static int timezone_offset_m = 0;
@@ -205,6 +206,14 @@ static void process_command(void) {
         brew_str("\n");
         brew_str("idk");
     }  
+    else if (strcmp_kernel(cmd_upper, "FUCKYOU") == 0) {
+        brew_str("\n");
+        brew_str("no you");
+    }  
+    else if (strcmp_kernel(cmd_upper, "SUDO APT UPDATE") == 0) {
+        brew_str("\n");
+        brew_str("bro what do you think this is? Ubuntu?");
+    }  
     else if (strcmp_kernel(cmd_upper, "BEEP") == 0) {
         beep_command();
     }
@@ -212,6 +221,13 @@ static void process_command(void) {
         txtedit_run();
         print_clear();
     }
+    else if (strcmp_kernel(cmd_upper, "SHUTDOWN") == 0) {
+        shutdown_command();
+    }
+    else if (strcmp_kernel(cmd_upper, "REBOOT") == 0) {
+        reboot_command();
+    }
+
 
     else if (strcmp_kernel(cmd_upper, "EXIT") == 0) {
         in_cli_mode = 0;
