@@ -39,6 +39,7 @@
 #include "APPS/beep.h"
 #include "APPS/shutdown.h"
 #include "APPS/reboot.h"
+#include "APPS/cowsay.h"
 
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
@@ -226,6 +227,9 @@ static void process_command(void) {
     }
     else if (strcmp_kernel(cmd_upper, "REBOOT") == 0) {
         reboot_command();
+    }
+    else if (strcmp_kernel(cmd_upper, "COWSAY") == 0 || (brew_strlen(cmd_upper) > 6 && strncmp_kernel(cmd_upper, "COWSAY ", 7) == 0)) {
+        display_cowsay(command_buffer);
     }
 
 

@@ -33,6 +33,7 @@ static void display_help() {
     brew_str("  UPTIME  - Show how long the system has been running\n");
     brew_str("  BEEP    - Makes a beep sound using the PC speaker\n");
     brew_str("  TXTEDIT - Open the text editor\n");
+    brew_str("  COWSAY. - MOO!");
 }
 
 #endif // APPS_HELP_H
