@@ -18,13 +18,13 @@
 
 // Main kernel file for Brew kernel.
 // This file contains the main function and the kernel's entry point.
-// It prints a welcome message, does a math preview and then loops all VGA characters to the screen.
-
+// it contains the cli (Command line interface) implementation, using header files
+// (example APPS/txtedit.h). and then calls functions from those header files
+// for use in the CLI.
 #include "print.h"
 #include "keyboard.h"
 #include "rtc.h"
 #include "timezones.h"
-// Applications (Extensions) includes
 #include "APPS/txtedit.h"
 #include "APPS/date.h"
 #include "APPS/help.h"
