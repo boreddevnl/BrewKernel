@@ -13,5 +13,7 @@ void fs_print_working_directory(void);
 File* fs_create_file(const char* name);
 File* fs_find_file(const char* name);
 bool fs_create_directory_at_path(const char* path);
+bool fs_remove_file(const char* path);
+bool fs_create_directories(const char** names, int count);
 
 #endif

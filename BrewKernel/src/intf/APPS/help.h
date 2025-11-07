@@ -36,7 +36,9 @@ static void display_help() {
     brew_str("  COWSAY. - MOO!\n");
     brew_str("  LS      - List files in current directory\n");
     brew_str("  CD      - Change current directory\n");
-    brew_str("  PWD     - Print working directory");
+    brew_str("  PWD     - Print working directory\n");
+    brew_str("  MKDIR   - Create one or more directories\n");
+    brew_str("  RM      - Remove a file or empty directory");
 }
 
 #endif // APPS_HELP_H

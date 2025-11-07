@@ -349,3 +349,85 @@ bool fs_create_directory_at_path(const char* path) {
 
     return success;
 }
+
+bool fs_remove_file(const char* path) {
+    if (!path) return false;
+
+    // Split path into directory and filename
+    char dir_path[256];
+    const char* last_slash = fs_strrchr(path, '/');
+    char name[256];
+    File* target_dir;
+
+    if (last_slash) {
+        // There's a path component
+        size_t dir_len = last_slash - path;
+        for (size_t i = 0; i < dir_len; i++) {
+            dir_path[i] = path[i];
+        }
+        dir_path[dir_len] = '\0';
+        
+        // Get the name part after the last slash
+        const char* name_start = last_slash + 1;
+        size_t i = 0;
+        while (name_start[i]) {
+            name[i] = name_start[i];
+            i++;
+        }
+        name[i] = '\0';
+
+        target_dir = fs_internal_resolve_path(dir_path);
+    } else {
+        // No path component, just filename in current directory
+        size_t i = 0;
+        while (path[i]) {
+            name[i] = path[i];
+            i++;
+        }
+        name[i] = '\0';
+        target_dir = current_dir;
+    }
+
+    if (!target_dir) return false;
+
+    // Find and remove the file/directory
+    File* prev = NULL;
+    File* current = target_dir->children;
+
+    while (current) {
+        if (fs_strcmp(current->name, name) == 0) {
+            // If it's a directory, make sure it's empty
+            if (current->type == 'd' && current->child_count > 0) {
+                brew_str("Error: Cannot remove non-empty directory\n");
+                return false;
+            }
+
+            // Remove from linked list
+            if (prev) {
+                prev->next_sibling = current->next_sibling;
+            } else {
+                target_dir->children = current->next_sibling;
+            }
+            target_dir->child_count--;
+            return true;
+        }
+        prev = current;
+        current = current->next_sibling;
+    }
+
+    brew_str("Error: File or directory not found\n");
+    return false;
+}
+
+bool fs_create_directories(const char** names, int count) {
+    bool all_success = true;
+    for (int i = 0; i < count; i++) {
+        if (!fs_create_directory(names[i])) {
+            all_success = false;
+            brew_str("Error creating directory: ");
+            brew_str(names[i]);
+            brew_str("\n");
+        }
+    }
+    return all_success;
+}

@@ -152,6 +152,34 @@ static void navigate_history(int direction) {
     buffer_pos = i;
 }
 
+// Function to split command into arguments
+static int split_command(char *cmd, char *args[], int max_args) {
+    int arg_count = 0;
+    int in_arg = 0;
+    
+    while (*cmd && arg_count < max_args) {
+        // Skip whitespace
+        while (*cmd == ' ' || *cmd == '\t') {
+            *cmd++ = '\0';
+        }
+        
+        // Check if we've reached the end
+        if (*cmd == '\0') {
+            break;
+        }
+        
+        // Store argument pointer
+        args[arg_count++] = cmd;
+        
+        // Find end of argument
+        while (*cmd && *cmd != ' ' && *cmd != '\t') {
+            cmd++;
+        }
+    }
+    
+    return arg_count;
+}
+
 // Function to process CLI commands
 static void process_command(void) {
     // Null terminate the command string
@@ -169,6 +197,9 @@ static void process_command(void) {
                      : command_buffer[i];
     }
     cmd_upper[i] = '\0';  // Properly null-terminate the string
+    
+    // Initialize return flag
+    bool return_to_prompt = true;
     
     // Process commands
     if (strcmp_kernel(cmd_upper, "HELP") == 0) {
@@ -198,6 +229,19 @@ static void process_command(void) {
     }
     else if (strcmp_kernel(cmd_upper, "DOOM") == 0) {
         doom();
+    }
+    else if (strncmp_kernel(cmd_upper, "RM ", 3) == 0) {
+        const char* path = command_buffer + 3;
+        // Skip leading spaces
+        while (*path == ' ') path++;
+        
+        if (*path == '\0') {
+            brew_str("rm: missing operand\n");
+        } else {
+            if (!fs_remove_file(path)) {
+                // Error message already printed by fs_remove_file
+            }
+        }
     }
     else if (strcmp_kernel(cmd_upper, "BLIND") == 0) {
         blindme();
@@ -259,15 +303,53 @@ static void process_command(void) {
     }
     else if (strcmp_kernel(cmd_upper, "MKDIR") == 0 || (brew_strlen(cmd_upper) > 5 && strncmp_kernel(cmd_upper, "MKDIR ", 6) == 0)) {
         if (brew_strlen(command_buffer) > 6) {
-            const char* path = &command_buffer[6];
-            brew_str("\n");
-            if (fs_create_directory_at_path(path)) {
-                brew_str("Directory created successfully\n");
+            char* args[16];
+            char cmd_copy[256];
+            int i;
+            for (i = 6; command_buffer[i]; i++) {
+                cmd_copy[i-6] = command_buffer[i];
+            }
+            cmd_copy[i-6] = '\0';
+            
+            int arg_count = split_command(cmd_copy, args, 16);
+            if (arg_count == 0) {
+                brew_str("\nUsage: MKDIR <directory> [directory ...]\n");
             } else {
-                brew_str("Failed to create directory\n");
+                brew_str("\n");
+                bool all_success = true;
+                for (int i = 0; i < arg_count; i++) {
+                    if (!fs_create_directory_at_path(args[i])) {
+                        brew_str("Failed to create directory: ");
+                        brew_str(args[i]);
+                        brew_str("\n");
+                        all_success = false;
+                    }
+                }
+                if (all_success) {
+                    brew_str("All directories created successfully\n");
+                }
             }
         } else {
-            brew_str("\nUsage: MKDIR <directory>\n");
+            brew_str("\nUsage: MKDIR <directory> [directory ...]\n");
+        }
+    }
+    else if (strcmp_kernel(cmd_upper, "RM") == 0 || (brew_strlen(cmd_upper) > 2 && strncmp_kernel(cmd_upper, "RM ", 3) == 0)) {
+        if (brew_strlen(command_buffer) > 3) {
+            const char* path = &command_buffer[3];
+            while (*path == ' ') path++; // Skip leading spaces
+            
+            brew_str("\n");
+            if (*path == '\0') {
+                brew_str("Usage: RM <file_or_directory>\n");
+            } else if (!fs_remove_file(path)) {
+                // fs_remove_file already prints error message
+            } else {
+                brew_str("Successfully removed ");
+                brew_str(path);
+                brew_str("\n");
+            }
+        } else {
+            brew_str("\nUsage: RM <file_or_directory>\n");
         }
     }
     else if (brew_strlen(cmd_upper) > 3 && strncmp_kernel(cmd_upper, "CD ", 3) == 0) {
@@ -341,17 +423,18 @@ static void process_command(void) {
         #endif
         brew_str("\n\n");
 
-
-
         buffer_pos = 0;
-        return;
-    } else if (buffer_pos > 0) {
+        return_to_prompt = false;
+    }
+    else if (buffer_pos > 0) {
         brew_str("\nUnknown command. Type HELP for available commands.\n");
     }
     
-    // Reset buffer and show prompt
-    buffer_pos = 0;
-    brew_str("\nbrew> ");
+    // Reset buffer and show prompt if needed
+    if (return_to_prompt) {
+        buffer_pos = 0;
+        brew_str("\nbrew> ");
+    }
 }
 
 void kernel_main() {
