@@ -41,6 +41,11 @@
 #include "APPS/reboot.h"
 #include "APPS/cowsay.h"
 
+// Enable to automatically enter the CLI on boot. Set to 0 to disable.
+#ifndef AUTO_START_CLI
+#define AUTO_START_CLI 1
+#endif
+
 // String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
     while (*s1 && (*s1 == *s2)) {
@@ -293,8 +298,7 @@ static void process_command(void) {
 
 
         // Print CLI instruction
-        brew_str("Type 'CLI' and press Enter to start the command line interface...\n");
-        brew_str("brew> ");
+
         buffer_pos = 0;
         return;
     } else if (buffer_pos > 0) {
@@ -306,15 +310,12 @@ static void process_command(void) {
     brew_str("\nbrew> ");
 }
 
-// main kernel section,
-// do not remove data, only add if needed.
-// This is kept for documentation and debugging.
 void kernel_main() {
     print_clear();
     
     print_init_palette();
     
-    // Initialize uptime counter at boot
+    // Initialize uptime counter at boot (cmd: uptime in cli)
     init_uptime();
 
     print_set_palette_color(1, 0, 113, 255);   // Blue
@@ -326,12 +327,10 @@ void kernel_main() {
     print_set_palette_color(7, 172, 140, 104);  // Latte
     print_set_palette_color(14, 252, 3, 236); // pink
 
-    // Display the Brew kernel logo and system information.
+    // Display sysinfo
         print_clear();
         
-        // Reprint all kernel initialization output
 
-        // Reprint the logo
         print_set_color(PRINT_INDEX_1, PRINT_INDEX_0);
         brew_str("( (\n");
         print_set_color(PRINT_INDEX_2, PRINT_INDEX_0);  
@@ -346,7 +345,7 @@ void kernel_main() {
         brew_str("   `----'\n\n");
         print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
 
-        // Reprint color palette preview
+        // color palette preview
         for (int i = 0; i < 16; i++) {
             print_set_color(i, i);  
             print_char(' ');       
@@ -385,15 +384,21 @@ void kernel_main() {
 
 
     brew_str("Welcome to Brew kernel!\n");
-    brew_str("Type 'CLI' and press Enter to start the command line interface...\n");
-    brew_str("brew> ");
     print_enable_cursor();  // Enable the hardware cursor
-    
+
+#if AUTO_START_CLI
+    /* Auto-enter CLI mode so the user doesn't need to type 'CLI' after boot. */
+    in_cli_mode = 1;
+    clistart();
+    brew_str("brew> ");
+    buffer_pos = 0;
+#endif
+
     while (1) {
         if (check_keyboard()) {
             unsigned char scan_code = read_scan_code();
             
-            // Handle special keys
+            // special keys
             if (scan_code == 0x0E) {  // Backspace
                 if (buffer_pos > 0) {
                     buffer_pos--;
@@ -410,7 +415,6 @@ void kernel_main() {
                     // Handle special characters
                     if (ascii_char == '\n' || ascii_char == '\r') {
                         if (!in_cli_mode) {
-                            // Check if user typed "CLI" to enter CLI mode
                             command_buffer[buffer_pos] = '\0';
                             char cmd_upper[256];
                             int i;
