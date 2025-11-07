@@ -41,12 +41,11 @@
 #include "APPS/reboot.h"
 #include "APPS/cowsay.h"
 
-// Enable to automatically enter the CLI on boot. Set to 0 to disable.
+// Enable to automatically enter the CLI on boot. Set to 0 to disable probably no reason to do this, might be handy though.
 #ifndef AUTO_START_CLI
 #define AUTO_START_CLI 1
 #endif
 
-// String comparison function for kernel
 static int strcmp_kernel(const char *s1, const char *s2) {
     while (*s1 && (*s1 == *s2)) {
         s1++;
@@ -297,7 +296,6 @@ static void process_command(void) {
         brew_str("\n\n");
 
 
-        // Print CLI instruction
 
         buffer_pos = 0;
         return;
@@ -317,7 +315,7 @@ void kernel_main() {
     
     // Initialize uptime counter at boot (cmd: uptime in cli)
     init_uptime();
-
+    // these colors might not be accurate since other parts can modify the palette.. (i know this is cursed but i'm lazy and it works)
     print_set_palette_color(1, 0, 113, 255);   // Blue
     print_set_palette_color(2, 245, 194, 45);   // Yellow
     print_set_palette_color(3, 255, 129, 63);   // Orange
@@ -383,7 +381,7 @@ void kernel_main() {
         brew_str("\n\n");
 
 
-    brew_str("Welcome to Brew kernel!\n");
+    brew_str("Welcome to the Brew kernel!\n");
     print_enable_cursor();  // Enable the hardware cursor
 
 #if AUTO_START_CLI
