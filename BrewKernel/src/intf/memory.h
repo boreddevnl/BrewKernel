@@ -20,7 +20,17 @@
 
 #include <stddef.h>
 
+// File content memory pool functions
 void* fs_allocate(size_t size);
 void fs_free(void* ptr);
+size_t fs_get_total_memory(void);
+size_t fs_get_used_memory(void);
+size_t fs_get_free_memory(void);
+
+// System memory functions
+void sys_memory_init(void* multiboot_info);
+size_t sys_get_total_ram(void);
+size_t sys_get_used_ram(void);
+size_t sys_get_free_ram(void);
 
 #endif

@@ -33,5 +33,7 @@ bool fs_create_directory_at_path(const char* path);
 bool fs_remove_file(const char* path);
 bool fs_create_directories(const char** names, int count);
 const char* fs_read_file_at_path(const char* path, size_t* out_size);
+bool fs_write_file_at_path(const char* path, const char* content, size_t size);
+bool fs_create_file_at_path(const char* path);
 
 #endif

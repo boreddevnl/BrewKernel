@@ -64,6 +64,13 @@ bool file_write_content(File* file, const char* content, size_t size) {
         file->content_size = 0;
     }
 
+    // Handle empty files (size 0) - no allocation needed
+    if (size == 0) {
+        file->content = NULL;
+        file->content_size = 0;
+        return true;
+    }
+
     char* new_content = fs_allocate(size);
     if (!new_content) {
         return false;

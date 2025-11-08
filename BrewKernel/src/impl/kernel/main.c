@@ -41,6 +41,8 @@
 #include "APPS/reboot.h"
 #include "APPS/cowsay.h"
 #include "APPS/brewer.h"
+#include "APPS/memory.h"
+#include "memory.h"
 #include "filesys.h"
 
 // Enable to automatically enter the CLI on boot. Set to 0 to disable this, probably no reason to do this might be handy though.
@@ -228,6 +230,9 @@ static void process_command(void) {
     else if (strcmp_kernel(cmd_upper, "UPTIME") == 0) {
         display_uptime();
     }
+    else if (strcmp_kernel(cmd_upper, "MEMORY") == 0) {
+        display_memory();
+    }
     else if (strcmp_kernel(cmd_upper, "DOOM") == 0) {
         doom();
     }
@@ -335,6 +340,106 @@ static void process_command(void) {
             }
         } else {
             brew_str("\nUsage: CAT <file>\n");
+        }
+    }
+    else if (strcmp_kernel(cmd_upper, "ECHO") == 0 || (brew_strlen(cmd_upper) > 4 && strncmp_kernel(cmd_upper, "ECHO ", 5) == 0)) {
+        brew_str("\n");
+        if (brew_strlen(command_buffer) > 5) {
+            const char* args = &command_buffer[5];
+            while (*args == ' ') args++; // skip leading spaces
+            
+            if (*args == '\0') {
+                brew_str("\n");
+            } else {
+                // Check for redirection operator ">"
+                const char* redirect_pos = args;
+                const char* filename = NULL;
+                const char* text_start = args;
+                const char* text_end = NULL;
+                
+                // Find ">" operator
+                while (*redirect_pos) {
+                    if (*redirect_pos == '>') {
+                        // Found ">" operator
+                        text_end = redirect_pos;
+                        // Move back to find end of text (skip spaces before >)
+                        while (text_end > text_start && (*(text_end - 1) == ' ' || *(text_end - 1) == '"')) {
+                            text_end--;
+                        }
+                        
+                        filename = redirect_pos + 1;
+                        while (*filename == '>' || *filename == ' ') filename++;
+                        break;
+                    }
+                    redirect_pos++;
+                }
+                
+                if (filename && *filename != '\0') {
+                    // Write to file
+                    if (text_end && text_end > text_start) {
+                        // Extract text (remove quotes if present)
+                        char text[512];
+                        size_t text_pos = 0;
+                        const char* text_ptr = text_start;
+                        
+                        // Skip opening quote if present
+                        if (*text_ptr == '"') text_ptr++;
+                        
+                        while (text_ptr < text_end && text_pos < sizeof(text) - 1) {
+                            if (*text_ptr != '"') {
+                                text[text_pos++] = *text_ptr;
+                            }
+                            text_ptr++;
+                        }
+                        text[text_pos] = '\0';
+                        
+                        if (fs_write_file_at_path(filename, text, text_pos)) {
+                            // Success - no message needed
+                        } else {
+                            brew_str("Error: Could not write to file\n");
+                        }
+                    } else {
+                        brew_str("Usage: ECHO \"text\" > <file>\n");
+                    }
+                } else {
+                    // Just print the text
+                    // Remove quotes if present
+                    const char* print_ptr = args;
+                    if (*print_ptr == '"') print_ptr++;
+                    
+                    while (*print_ptr) {
+                        if (*print_ptr == '"' && print_ptr > args) {
+                            // End of quoted string
+                            break;
+                        } else if (*print_ptr != '"') {
+                            print_char(*print_ptr);
+                        }
+                        print_ptr++;
+                    }
+                    brew_str("\n");
+                }
+            }
+        } else {
+            brew_str("\n");
+        }
+    }
+    else if (strcmp_kernel(cmd_upper, "TOUCH") == 0 || (brew_strlen(cmd_upper) > 5 && strncmp_kernel(cmd_upper, "TOUCH ", 6) == 0)) {
+        if (brew_strlen(command_buffer) > 6) {
+            const char* path = &command_buffer[6];
+            while (*path == ' ') path++; // skip leading spaces
+            
+            brew_str("\n");
+            if (*path == '\0') {
+                brew_str("Usage: TOUCH <file>\n");
+            } else {
+                if (fs_create_file_at_path(path)) {
+                    // Success - no message needed
+                } else {
+                    brew_str("Error: Could not create file\n");
+                }
+            }
+        } else {
+            brew_str("\nUsage: TOUCH <file>\n");
         }
     }
     else if (strcmp_kernel(cmd_upper, "CD") == 0) {
@@ -475,10 +580,13 @@ static void process_command(void) {
     }
 }
 
-void kernel_main() {
+void kernel_main(void* multiboot_info) {
     print_clear();
     
     print_init_palette();
+    
+    // Initialize system memory detection
+    sys_memory_init(multiboot_info);
     
     // Initialize filesystem
     fs_init();

@@ -19,7 +19,7 @@
 #define APPS_NERD_H
 
 #include "../io.h"
-#include "print.h"
+#include "../print.h"
 
 static void nerd() {
     brew_str("\n");
@@ -37,7 +37,7 @@ static void nerd() {
 
     outb(0x61, inb(0x61) | 0x03);   
      
-    for(int i = 0; i < 1000000000000000000000000000; i++) {  
+    for(int i = 0; i < 1000000000000000000; i++) {  
         print_set_color(PRINT_INDEX_0, PRINT_INDEX_15); // black on white
         print_clear();
         brewing(500000); 

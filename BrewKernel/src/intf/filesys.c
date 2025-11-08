@@ -488,3 +488,164 @@ const char* fs_read_file_at_path(const char* path, size_t* out_size) {
 
     return NULL;
 }
+
+bool fs_write_file_at_path(const char* path, const char* content, size_t size) {
+    if (!path || !content) return false;
+
+    char dir_path[256];
+    const char* last_slash = fs_strrchr(path, '/');
+    char name[256];
+    File* target_dir = NULL;
+
+    if (last_slash) {
+        size_t dir_len = last_slash - path;
+        size_t i;
+        for (i = 0; i < dir_len && i < sizeof(dir_path)-1; i++) {
+            dir_path[i] = path[i];
+        }
+        dir_path[i] = '\0';
+
+        const char* name_start = last_slash + 1;
+        size_t j = 0;
+        while (name_start[j] && j < sizeof(name)-1) {
+            name[j] = name_start[j];
+            j++;
+        }
+        name[j] = '\0';
+
+        target_dir = fs_internal_resolve_path(dir_path);
+    } else {
+        size_t i = 0;
+        while (path[i] && i < sizeof(name)-1) {
+            name[i] = path[i];
+            i++;
+        }
+        name[i] = '\0';
+        target_dir = current_dir;
+    }
+
+    if (!target_dir) return false;
+
+    // Check if file already exists
+    File* existing_file = target_dir->children;
+    while (existing_file) {
+        if (existing_file->type == 'f' && fs_strcmp(existing_file->name, name) == 0) {
+            // File exists, overwrite it
+            return file_write_content(existing_file, content, size);
+        }
+        existing_file = existing_file->next_sibling;
+    }
+
+    // File doesn't exist, create it
+    File* original_dir = current_dir;
+    const char* original_path = fs_get_working_directory();
+    char original_path_copy[256];
+    size_t i;
+    for (i = 0; original_path[i]; i++) {
+        original_path_copy[i] = original_path[i];
+    }
+    original_path_copy[i] = '\0';
+
+    current_dir = target_dir;
+    File* new_file = fs_create_file(name);
+    if (!new_file) {
+        current_dir = original_dir;
+        for (i = 0; original_path_copy[i]; i++) {
+            current_path[i] = original_path_copy[i];
+        }
+        current_path[i] = '\0';
+        return false;
+    }
+
+    bool success = file_write_content(new_file, content, size);
+    
+    // Restore original directory
+    current_dir = original_dir;
+    for (i = 0; original_path_copy[i]; i++) {
+        current_path[i] = original_path_copy[i];
+    }
+    current_path[i] = '\0';
+
+    return success;
+}
+
+bool fs_create_file_at_path(const char* path) {
+    if (!path) return false;
+
+    char dir_path[256];
+    const char* last_slash = fs_strrchr(path, '/');
+    char name[256];
+    File* target_dir = NULL;
+
+    if (last_slash) {
+        size_t dir_len = last_slash - path;
+        size_t i;
+        for (i = 0; i < dir_len && i < sizeof(dir_path)-1; i++) {
+            dir_path[i] = path[i];
+        }
+        dir_path[i] = '\0';
+
+        const char* name_start = last_slash + 1;
+        size_t j = 0;
+        while (name_start[j] && j < sizeof(name)-1) {
+            name[j] = name_start[j];
+            j++;
+        }
+        name[j] = '\0';
+
+        target_dir = fs_internal_resolve_path(dir_path);
+    } else {
+        size_t i = 0;
+        while (path[i] && i < sizeof(name)-1) {
+            name[i] = path[i];
+            i++;
+        }
+        name[i] = '\0';
+        target_dir = current_dir;
+    }
+
+    if (!target_dir) return false;
+
+    // Check if file already exists
+    File* existing_file = target_dir->children;
+    while (existing_file) {
+        if (existing_file->type == 'f' && fs_strcmp(existing_file->name, name) == 0) {
+            // File already exists, touch just updates timestamp (we'll just return true)
+            return true;
+        }
+        existing_file = existing_file->next_sibling;
+    }
+
+    // File doesn't exist, create it
+    File* original_dir = current_dir;
+    const char* original_path = fs_get_working_directory();
+    char original_path_copy[256];
+    size_t i;
+    for (i = 0; original_path[i]; i++) {
+        original_path_copy[i] = original_path[i];
+    }
+    original_path_copy[i] = '\0';
+
+    current_dir = target_dir;
+    File* new_file = fs_create_file(name);
+    if (!new_file) {
+        current_dir = original_dir;
+        for (i = 0; original_path_copy[i]; i++) {
+            current_path[i] = original_path_copy[i];
+        }
+        current_path[i] = '\0';
+        return false;
+    }
+
+    // Create empty file (no content)
+    bool success = file_write_content(new_file, "", 0);
+    
+    // Restore original directory
+    current_dir = original_dir;
+    for (i = 0; original_path_copy[i]; i++) {
+        current_path[i] = original_path_copy[i];
+    }
+    current_path[i] = '\0';
+
+    return success;
+}
