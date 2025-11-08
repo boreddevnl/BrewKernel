@@ -32,7 +32,6 @@ static int fs_strcmp(const char* s1, const char* s2) {
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
-// Global variables
 static char current_path[256] = "/";
 static File* root_dir = NULL;
 static File* current_dir = NULL;
@@ -353,21 +352,18 @@ bool fs_create_directory_at_path(const char* path) {
 bool fs_remove_file(const char* path) {
     if (!path) return false;
 
-    // Split path into directory and filename
     char dir_path[256];
     const char* last_slash = fs_strrchr(path, '/');
     char name[256];
     File* target_dir;
 
     if (last_slash) {
-        // There's a path component
         size_t dir_len = last_slash - path;
         for (size_t i = 0; i < dir_len; i++) {
             dir_path[i] = path[i];
         }
         dir_path[dir_len] = '\0';
         
-        // Get the name part after the last slash
         const char* name_start = last_slash + 1;
         size_t i = 0;
         while (name_start[i]) {
@@ -378,7 +374,6 @@ bool fs_remove_file(const char* path) {
 
         target_dir = fs_internal_resolve_path(dir_path);
     } else {
-        // No path component, just filename in current directory
         size_t i = 0;
         while (path[i]) {
             name[i] = path[i];
@@ -390,19 +385,16 @@ bool fs_remove_file(const char* path) {
 
     if (!target_dir) return false;
 
-    // Find and remove the file/directory
     File* prev = NULL;
     File* current = target_dir->children;
 
     while (current) {
         if (fs_strcmp(current->name, name) == 0) {
-            // If it's a directory, make sure it's empty
             if (current->type == 'd' && current->child_count > 0) {
                 brew_str("Error: Cannot remove non-empty directory\n");
                 return false;
             }
 
-            // Remove from linked list
             if (prev) {
                 prev->next_sibling = current->next_sibling;
             } else {
@@ -430,4 +422,52 @@ bool fs_create_directories(const char** names, int count) {
         }
     }
     return all_success;
+}
+
+const char* fs_read_file_at_path(const char* path, size_t* out_size) {
+    if (!path || !out_size) return NULL;
+
+    char dir_path[256];
+    const char* last_slash = fs_strrchr(path, '/');
+    char name[256];
+    File* target_dir = NULL;
+
+    if (last_slash) {
+        size_t dir_len = last_slash - path;
+        size_t i;
+        for (i = 0; i < dir_len && i < sizeof(dir_path)-1; i++) {
+            dir_path[i] = path[i];
+        }
+        dir_path[i] = '\0';
+
+        const char* name_start = last_slash + 1;
+        size_t j = 0;
+        while (name_start[j] && j < sizeof(name)-1) {
+            name[j] = name_start[j];
+            j++;
+        }
+        name[j] = '\0';
+
+        target_dir = fs_internal_resolve_path(dir_path);
+    } else {
+        size_t i = 0;
+        while (path[i] && i < sizeof(name)-1) {
+            name[i] = path[i];
+            i++;
+        }
+        name[i] = '\0';
+        target_dir = current_dir;
+    }
+
+    if (!target_dir) return NULL;
+
+    File* child = target_dir->children;
+    while (child) {
+        if (child->type == 'f' && fs_strcmp(child->name, name) == 0) {
+            return file_get_content(child, out_size);
+        }
+        child = child->next_sibling;
+    }
+
+    return NULL;
 }

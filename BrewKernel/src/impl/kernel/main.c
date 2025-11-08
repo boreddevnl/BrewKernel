@@ -40,6 +40,7 @@
 #include "APPS/shutdown.h"
 #include "APPS/reboot.h"
 #include "APPS/cowsay.h"
+#include "APPS/brewer.h"
 #include "filesys.h"
 
 // Enable to automatically enter the CLI on boot. Set to 0 to disable this, probably no reason to do this might be handy though.
@@ -285,6 +286,20 @@ static void process_command(void) {
     else if (strcmp_kernel(cmd_upper, "COWSAY") == 0 || (brew_strlen(cmd_upper) > 6 && strncmp_kernel(cmd_upper, "COWSAY ", 7) == 0)) {
         display_cowsay(command_buffer);
     }
+        else if (strcmp_kernel(cmd_upper, "BREWER") == 0 || (brew_strlen(cmd_upper) > 6 && strncmp_kernel(cmd_upper, "BREWER ", 7) == 0)) {
+            brew_str("\n");
+            if (brew_strlen(command_buffer) > 7) {
+                // Extract arguments after "BREWER "
+                char* args[2];
+                args[0] = "brewer";  // Program name
+                args[1] = &command_buffer[7];  // First argument (filename)
+                // Trim leading spaces from the argument
+                while (*args[1] == ' ') args[1]++;
+                brewer_main(2, args);
+            } else {
+                brewer_main(1, (char*[]){"brewer"});  // Call with no arguments
+            }
+        }
     else if (strcmp_kernel(cmd_upper, "LS") == 0 || (brew_strlen(cmd_upper) > 2 && strncmp_kernel(cmd_upper, "LS ", 3) == 0)) {
         brew_str("\n");
         if (brew_strlen(command_buffer) > 3) {
@@ -296,6 +311,30 @@ static void process_command(void) {
             }
         } else {
             fs_list_directory();
+        }
+    }
+    else if (strcmp_kernel(cmd_upper, "CAT") == 0 || (brew_strlen(cmd_upper) > 3 && strncmp_kernel(cmd_upper, "CAT ", 4) == 0)) {
+        if (brew_strlen(command_buffer) > 4) {
+            const char* path = &command_buffer[4];
+            while (*path == ' ') path++; // skip leading spaces
+            if (*path == '\0') {
+                brew_str("Usage: CAT <file>\n");
+            } else {
+                size_t size = 0;
+                const char* content = fs_read_file_at_path(path, &size);
+                if (!content || size == 0) {
+                    brew_str("Error: Could not read file or file is empty\n");
+                } else {
+                    brew_str("\n");
+                    // Print the content byte-by-byte to preserve non-null-terminated files
+                    for (size_t i = 0; i < size; i++) {
+                        print_char(content[i]);
+                    }
+                    brew_str("\n");
+                }
+            }
+        } else {
+            brew_str("\nUsage: CAT <file>\n");
         }
     }
     else if (strcmp_kernel(cmd_upper, "CD") == 0) {
@@ -366,8 +405,7 @@ static void process_command(void) {
         fs_print_working_directory();
     }
     else if (strcmp_kernel(cmd_upper, "EXIT") == 0) {
-        in_cli_mode = 0;
-        print_clear();
+        shutdown_command();
         
         // Reprint all kernel initialization output
 
