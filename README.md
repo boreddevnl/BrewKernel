@@ -28,7 +28,6 @@ It features a custom bootloader, VGA text mode output with customizable colors, 
   - TXTEDIT - text editor, files saved to RAM
   - BEEP - beeps using speaker output.
 
-# either follow the instructions below, or follow the [user manual](https://brew.boreddev.nl/manual.html)
 ## Prerequisites
 
 To build the kernel, you'll need Docker installed on your system. The build environment is containerized to ensure consistency across different systems.
