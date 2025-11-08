@@ -60,8 +60,6 @@ qemu-system-x86_64 -cdrom dist/x86_64/kernel.iso
 ```
 
 Or run Brew on actual hardware. </br>
-<img src="img/Screenshot 2025-04-28 at 00.23.05.png" width="400" /> </br>
-
 
 *note: This is not recommended, i am not liable if this software breaks your system, this is **completely at YOUR OWN RISK.** This software comes with **ZERO** warranty.*
 
