@@ -964,7 +964,7 @@ static void process_command(void) {
         brew_str("\n\n");
 
                 print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
-        brew_str("Brew kernel v2.1\n");
+        brew_str("Brew kernel v3.0\n");
         brew_str("Copyright (C) 2024-2025 boreddevhq.\n");
         brew_str("Build: ");
         brew_str(__DATE__);
@@ -1055,7 +1055,7 @@ void kernel_main(void* multiboot_info) {
         brew_str("\n\n");
 
                 print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
-        brew_str("Brew kernel v2.1\n");
+        brew_str("Brew kernel v3.0\n");
         brew_str("Copyright (C) 2024-2025 boreddevhq.\n");
         brew_str("Build: ");
         brew_str(__DATE__);
