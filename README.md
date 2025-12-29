@@ -231,9 +231,9 @@ This program is free software: you can redistribute it and/or modify it under th
 NOTICE
 ------
 
-This product includes software developed by Chris ("boreddevhq") as part of the BrewKernel project.
+This product includes software developed by Chris ("boreddevnl") as part of the BrewKernel project.
 
-Copyright (C) 2024–2025 Chris / boreddevhq
+Copyright (C) 2024–2025 Chris / boreddevnl (previously boreddevhq)
 
 All source files in this repository contain copyright and license
 headers that must be preserved in redistributions and derivative works.
