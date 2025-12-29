@@ -34,7 +34,7 @@ It features a custom bootloader, VGA text mode output with customizable colors, 
 To build the kernel, you'll need Docker installed on your system. The build environment is containerized to ensure consistency across different systems.
 
 ## Building
-### Don't want to compile it yourself? grab the [latest "stable" version](https://github.com/BoredDevHQ/BrewKernel/tree/main/BrewKernel/dist/x86_64)
+### Don't want to compile it yourself? grab the [latest "stable" version](https://github.com/BoredDevNL/BrewKernel/tree/main/BrewKernel/dist/x86_64)
 1. First, build the Docker container for the build environment:
 
 ```sh
@@ -214,7 +214,7 @@ Basic IDT setup with handlers for:
 <p align="left">
   If you enjoy this project, and like what i'm doing here, consider buying me a coffee!
   <br><br>
-  <a href="https://buymeacoffee.com/boreddevhq" target="_blank">
+  <a href="https://buymeacoffee.com/boreddevnl" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" style="border-radius: 8px;" />
   </a>
 </p>
@@ -224,7 +224,7 @@ Basic IDT setup with handlers for:
 
 ## License
 
-Copyright (C) 2024-2025 boreddevhq
+Copyright (C) 2024-2025 boreddevnl
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

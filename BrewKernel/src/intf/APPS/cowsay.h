@@ -1,6 +1,6 @@
 /*
  * Brew Kernel Cowsay Utility
- * Copyright (C) 2024-2025 boreddevhq
+ * Copyright (C) 2024-2025 boreddevnl
  * 
  *
  * This program is free software: you can redistribute it and/or modify

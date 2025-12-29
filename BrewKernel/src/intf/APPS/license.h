@@ -1,6 +1,6 @@
 /*
  * Brew Kernel
- * Copyright (C) 2024-2025 boreddevhq
+ * Copyright (C) 2024-2025 boreddevnl
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 const char* license_pages[] = {
     "                    GNU GENERAL PUBLIC LICENSE",
     "                       Version 3, 29 June 2007",
-    "                Copyright (C) 2024-2025 boreddevhq",
+    "                Copyright (C) 2024-2025 boreddevnl",
     "",
     "  ",
     " Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>",
