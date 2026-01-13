@@ -1,6 +1,6 @@
 /*
  * Brew Kernel
- * Copyright (C) 2024-2025 boreddevnl
+ * Copyright (C) 2024-2026 boreddevnl
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ static void display_about() {
 
       print_set_color(PRINT_INDEX_7, PRINT_INDEX_0);
         brew_str("Brew kernel v3.0\n");
-        brew_str("Copyright (C) 2024-2025 boreddevnl.\n");
+        brew_str("Copyright (C) 2024-2026 boreddevnl.\n");
         brew_str("Build: ");
         brew_str(__DATE__);
         brew_str(" ");
