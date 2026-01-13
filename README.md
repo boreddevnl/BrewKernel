@@ -1,4 +1,9 @@
-# Brew Kernel V3.0
+# Brew Kernel V3.3
+
+## Brewkernel is now officially 2 years old!
+I've been working on this project since The 14th of January 2024 thinking it would probably a small project, touch it once and never again..
+Well that for sure hasn't happened. I've grown this out to an actually daily usable kernel (if you lived in the 80's) haha. 
+Enjoy the brew kernel, and i for sure hope to keep my interest on this massive project! 
 
 <img src="asciiart.png" width="200" /> </br>
 Brew Kernel is a simple x86_64 hobbyist kernel. 
