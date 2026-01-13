@@ -66,8 +66,8 @@ static void display_memory(void) {
     brew_str(" KB) - ");
     brew_int(100 - file_percent_used);
     brew_str("%\n");
-    
-    brew_str("\n=== System RAM ===\n");
+
+    brew_str("\n=== Memory Usage ===\n");
     brew_str("  Total: ");
     brew_int((int)(sys_total / 1024 / 1024));
     brew_str(" MB (");

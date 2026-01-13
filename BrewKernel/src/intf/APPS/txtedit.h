@@ -47,14 +47,18 @@ static size_t strlen_txtedit(const char* str) {
 static char text_buffer[BUFFER_SIZE];
 static int buffer_size = 0;
 static int cursor_pos = 0;
+static int cursor_row = 0;
+static int cursor_col = 0;
 #define ESC_KEY 0x01
 #define ENTER_KEY 0x1C
 #define BACKSPACE_KEY 0x0E
+#define SCAN_CODE_LEFT_ARROW 0x4B
+#define SCAN_CODE_RIGHT_ARROW 0x4D
 
 // Status messages
 static const char* MSG_SAVED = "Text saved to RAM buffer";
 static const char* MSG_LOADED = "Text loaded from RAM buffer";
-static const char* MSG_HELP = "ESC:Exit ENTER:NewLine";
+static const char* MSG_HELP = "ESC:Exit ENTER:NewLine Arrows:Navigate";
 
 static void draw_status_line(const char* msg) {
     size_t row, col;
@@ -122,16 +126,43 @@ static void save_current_buffer(const char* text_buffer, int buffer_size, bool p
     }
 }
 
+static void calculate_cursor_position() {
+    // Calculate cursor position based on buffer position
+    cursor_row = 0;
+    cursor_col = 0;
+    
+    for(int i = 0; i < cursor_pos && i < buffer_size; i++) {
+        if(text_buffer[i] == '\n') {
+            cursor_row++;
+            cursor_col = 0;
+        } else {
+            cursor_col++;
+        }
+    }
+}
+
 static void redraw_screen() {
+    print_disable_cursor();
+    
     print_clear();
     print_set_cursor_pos(0, 0);
     
-    // Draw the text
+    // Draw the text buffer
     for(int i = 0; i < buffer_size; i++) {
-        print_char(text_buffer[i]);
+        if(text_buffer[i] == '\n') {
+            print_char('\n');
+        } else {
+            print_char(text_buffer[i]);
+        }
     }
     
+    // Calculate cursor position based on cursor_pos in buffer
+    calculate_cursor_position();
+    
     draw_status_line(MSG_HELP);
+    // Position cursor correctly and re-enable it
+    print_set_cursor_pos(cursor_row, cursor_col);
+    print_enable_cursor();
 }
 
 static void insert_char(char c) {
@@ -145,7 +176,9 @@ static void insert_char(char c) {
     text_buffer[cursor_pos] = c;
     cursor_pos++;
     buffer_size++;
-    print_char(c);
+    
+    // Redraw the screen to properly display the inserted character
+    redraw_screen();
 }
 
 static void delete_char() {
@@ -158,27 +191,101 @@ static void delete_char() {
     }
     buffer_size--;
     
-    print_backspace();
+    // Redraw the screen to properly display after deletion
+    redraw_screen();
 }
 
 static void handle_special_key(unsigned char scan_code) {
-    size_t row, col;
-    print_get_cursor_pos(&row, &col);
-    
     switch(scan_code) {
         case SCAN_CODE_UP_ARROW:
-            if(row > 0) {
-                print_set_cursor_pos(row-1, col);
-                cursor_pos -= MAX_LINE_LENGTH;
-                if(cursor_pos < 0) cursor_pos = 0;
+            // Move to previous line at same column
+            for(int i = cursor_pos - 1; i >= 0; i--) {
+                if(text_buffer[i] == '\n') {
+                    // Found previous line, now find the right column
+                    int col = 0;
+                    int target_col = cursor_col;
+                    for(int j = i - 1; j >= 0; j--) {
+                        if(text_buffer[j] == '\n') {
+                            // Found start of previous line
+                            cursor_pos = j + 1 + (target_col < col ? col : target_col);
+                            calculate_cursor_position();
+                            redraw_screen();
+                            return;
+                        }
+                        col++;
+                    }
+                    // No previous line, go to beginning of document
+                    cursor_pos = 0;
+                    calculate_cursor_position();
+                    redraw_screen();
+                    return;
+                }
             }
+            // No newline found, go to beginning
+            cursor_pos = 0;
+            calculate_cursor_position();
+            redraw_screen();
             break;
             
         case SCAN_CODE_DOWN_ARROW:
-            if(row < MAX_LINES-2 && cursor_pos + MAX_LINE_LENGTH <= buffer_size) {
-                print_set_cursor_pos(row+1, col);
-                cursor_pos += MAX_LINE_LENGTH;
-                if(cursor_pos > buffer_size) cursor_pos = buffer_size;
+            // Count lines to check if we can move down
+            int current_line = 0;
+            int total_lines = 0;
+            int line_start = 0;
+            
+            // Count total lines and find current line
+            for(int i = 0; i < buffer_size; i++) {
+                if(text_buffer[i] == '\n') {
+                    total_lines++;
+                    if(i < cursor_pos) {
+                        current_line++;
+                        line_start = i + 1;
+                    }
+                }
+            }
+            
+            // If we're not on the last line, we can move down
+            if(current_line < total_lines) {
+                // Find next line
+                for(int i = cursor_pos; i < buffer_size; i++) {
+                    if(text_buffer[i] == '\n') {
+                        // Found next line start
+                        int target_col = cursor_col;
+                        int col = 0;
+                        for(int j = i + 1; j < buffer_size; j++) {
+                            if(text_buffer[j] == '\n') {
+                                // End of next line found
+                                cursor_pos = i + 1 + (target_col < col ? col : target_col);
+                                break;
+                            }
+                            col++;
+                        }
+                        // If no newline found on next line, place cursor at end or at target col
+                        if(cursor_pos == cursor_pos) {  // This is a check - if we didn't set it above
+                            cursor_pos = i + 1 + target_col;
+                            if(cursor_pos > buffer_size) cursor_pos = buffer_size;
+                        }
+                        calculate_cursor_position();
+                        redraw_screen();
+                        return;
+                    }
+                }
+            }
+            break;
+            
+        case SCAN_CODE_LEFT_ARROW:
+            if(cursor_pos > 0) {
+                cursor_pos--;
+                calculate_cursor_position();
+                redraw_screen();
+            }
+            break;
+            
+        case SCAN_CODE_RIGHT_ARROW:
+            if(cursor_pos < buffer_size) {
+                cursor_pos++;
+                calculate_cursor_position();
+                redraw_screen();
             }
             break;
     }
@@ -261,7 +368,8 @@ void txtedit_run(const char* filename) {
             else if(scan_code == BACKSPACE_KEY) {
                 delete_char();
             }
-            else if(is_special_key(scan_code)) {
+            else if(scan_code == SCAN_CODE_UP_ARROW || scan_code == SCAN_CODE_DOWN_ARROW || 
+                    scan_code == SCAN_CODE_LEFT_ARROW || scan_code == SCAN_CODE_RIGHT_ARROW) {
                 handle_special_key(scan_code);
             }
             else {
