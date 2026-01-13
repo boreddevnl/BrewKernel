@@ -28,8 +28,8 @@
 #include "APPS/txtedit.h"
 #include "APPS/date.h"
 #include "APPS/help.h"
-#include "APPS/calc.h"
-#include "APPS/sysinfo.h"
+#include "APPS/math.h"
+#include "APPS/about.h"
 #include "APPS/man.h"
 #include "APPS/license.h"
 #include "APPS/uptime.h"
@@ -41,8 +41,6 @@
 #include "APPS/cowsay.h"
 #include "APPS/brewer.h"
 #include "APPS/memory.h"
-#include "APPS/about_cmd.h"
-#include "APPS/about_dump.h"
 #include "memory.h"
 #include "filesys.h"
 #include "pic.h"
@@ -197,17 +195,14 @@ static void process_command(void) {
     if (strcmp_kernel(cmd_upper, "HELP") == 0) {
         display_help();
     }
-    else if (strncmp_kernel(cmd_upper, "ABOUT", 5) == 0) {
-        about_command(command_buffer);
-    }
     else if (strcmp_kernel(cmd_upper, "DATE") == 0) {
         date_command(&timezone_offset_h, &timezone_offset_m);
     }
-    else if (strcmp_kernel(cmd_upper, "CALC") == 0) {
-        calc_cmd();
+    else if (strcmp_kernel(cmd_upper, "MATH") == 0) {
+        math_cmd();
     }
-    else if (strcmp_kernel(cmd_upper, "SYSINFO") == 0) {
-        display_sysinfo();
+    else if (strcmp_kernel(cmd_upper, "ABOUT") == 0) {
+        display_about();
     }
     else if (strcmp_kernel(cmd_upper, "MAN") == 0) {
         show_manual();
@@ -510,7 +505,6 @@ void kernel_main(void* multiboot_info) {
     __asm__ __volatile__("sti");
     sys_memory_init(multiboot_info);
     fs_init();
-    create_log_txt_file();
     init_uptime();
     // these colors might not be accurate since other parts can modify the palette.. (i know this is cursed but i'm lazy and it works)
     print_set_palette_color(1, 0, 113, 255);   // Blue

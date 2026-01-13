@@ -23,19 +23,18 @@
 static void display_help() {
     brew_str("\nAvailable commands:\n");
     brew_str("  HELP    - Display this help message\n");
-    brew_str("  ABOUT   - Display info about a command (e.g., ABOUT TXTEDIT)\n");
     brew_str("  DATE    - Display the current date and time\n");
     brew_str("  EXIT    - Exit CLI mode and return to regular typing\n");
     brew_str("  CLEAR   - Clear the screen\n");
+    brew_str("  ABOUT   - Display system information\n");
     brew_str("  MATH    - Perform basic arithmetic\n");
-    brew_str("  CALC    - Open the calculator with numpad interface\n");
     brew_str("  MAN     - Show the detailed user manual\n");
     brew_str("  LICENSE - Display the GNU GPLv3 license\n");
     brew_str("  UPTIME  - Show how long the system has been running\n");
     brew_str("  MEMORY  - Display memory usage statistics\n");
     brew_str("  BEEP    - Makes a beep sound using the PC speaker\n");
     brew_str("  TXTEDIT - Open the text editor\n");
-    brew_str("  COWSAY  - MOO!\n");
+    brew_str("  COWSAY. - MOO!\n");
     brew_str("  LS      - List files in current directory\n");
     brew_str("  CD      - Change current directory\n");
     brew_str("  PWD     - Print working directory\n");
