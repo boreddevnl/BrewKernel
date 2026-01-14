@@ -174,8 +174,6 @@ int network_init(void) {
     
     network_initialized = 1;
     
-    // Try to acquire IP via DHCP (best-effort)
-    (void)network_dhcp_acquire();
     return 0;
 }
 
@@ -300,7 +298,9 @@ void network_process_frames(void) {
                     }
                     
                     if (is_for_our_ip || ip->dest_ip[0] == 255) {  // Broadcast
-                        ipv4_process_packet(ip, payload_length);
+                        mac_address_t src_mac;
+                        memcpy(src_mac.bytes, eth->src_mac, 6);
+                        ipv4_process_packet(ip, &src_mac, payload_length);
                     }
                 }
             }
@@ -420,23 +420,29 @@ int ipv4_send_packet(const ipv4_address_t* dest_ip, uint8_t protocol,
         return -1;
     }
     
-    // Look up MAC address (or use broadcast for local network)
     mac_address_t dest_mac;
-    int arp_ok = arp_lookup(dest_ip, &dest_mac);
     
-    // For now, if ARP lookup fails, try to send anyway (might be broadcast)
-    // In a real implementation, we'd wait for ARP reply
+    // Check if destination is broadcast (255.255.255.255)
+    int is_broadcast = (dest_ip->bytes[0] == 255 && dest_ip->bytes[1] == 255 &&
+                        dest_ip->bytes[2] == 255 && dest_ip->bytes[3] == 255);
+    
+    if (is_broadcast) {
+        // Use broadcast MAC for broadcast packets
+        memset(dest_mac.bytes, 0xFF, 6);
+    } else {
+        // Look up MAC address for unicast
+        int arp_ok = arp_lookup(dest_ip, &dest_mac);
+        
+        // If ARP lookup fails, use broadcast MAC (will be received by QEMU)
+        if (arp_ok != 0) {
+            memset(dest_mac.bytes, 0xFF, 6);
+        }
+    }
     
     uint8_t frame[ETH_FRAME_MAX_SIZE];
     eth_header_t* eth = (eth_header_t*)frame;
     ipv4_header_t* ip = (ipv4_header_t*)(frame + sizeof(eth_header_t));
     void* ip_payload = frame + sizeof(eth_header_t) + sizeof(ipv4_header_t);
-    
-    // Check if we have MAC (or use broadcast)
-    if (arp_ok != 0) {
-        // Use broadcast MAC for local network (simplified)
-        memset(dest_mac.bytes, 0xFF, 6);
-    }
     
     // Ethernet header
     memcpy(eth->dest_mac, dest_mac.bytes, 6);
@@ -466,7 +472,7 @@ int ipv4_send_packet(const ipv4_address_t* dest_ip, uint8_t protocol,
 }
 
 // IPv4: Process received packet
-void ipv4_process_packet(const ipv4_header_t* ip, size_t length) {
+void ipv4_process_packet(const ipv4_header_t* ip, const mac_address_t* src_mac, size_t length) {
     if (length < sizeof(ipv4_header_t)) {
         return;
     }
@@ -490,10 +496,49 @@ void ipv4_process_packet(const ipv4_header_t* ip, size_t length) {
             udp_packets_received_count++;  // Debug counter
             ipv4_address_t src_ip;
             memcpy(src_ip.bytes, ip->src_ip, 4);
-            udp_process_packet((udp_header_t*)payload, &src_ip, payload_length);
+            udp_process_packet((udp_header_t*)payload, &src_ip, src_mac, payload_length);
         }
     }
     // ICMP and TCP can be added later
+}
+
+// IPv4: Send packet with known destination MAC
+int ipv4_send_packet_to_mac(const ipv4_address_t* dest_ip, const mac_address_t* dest_mac,
+                            uint8_t protocol, const void* data, size_t data_length) {
+    if (!network_initialized) {
+        return -1;
+    }
+    
+    uint8_t frame[ETH_FRAME_MAX_SIZE];
+    eth_header_t* eth = (eth_header_t*)frame;
+    ipv4_header_t* ip = (ipv4_header_t*)(frame + sizeof(eth_header_t));
+    void* ip_payload = frame + sizeof(eth_header_t) + sizeof(ipv4_header_t);
+    
+    // Ethernet header
+    memcpy(eth->dest_mac, dest_mac->bytes, 6);
+    memcpy(eth->src_mac, our_mac.bytes, 6);
+    eth->ethertype = htons(ETH_ETHERTYPE_IPV4);
+    
+    // IPv4 header
+    ip->version_ihl = (4 << 4) | 5;  // Version 4, IHL 5 (20 bytes)
+    ip->tos = 0;
+    ip->total_length = htons(sizeof(ipv4_header_t) + data_length);
+    ip->id = htons(ipv4_id_counter++);
+    ip->flags_frag = 0;  // No fragmentation
+    ip->ttl = 64;
+    ip->protocol = protocol;
+    ip->checksum = 0;
+    memcpy(ip->src_ip, our_ip.bytes, 4);
+    memcpy(ip->dest_ip, dest_ip->bytes, 4);
+    
+    // Calculate checksum
+    ip->checksum = ipv4_checksum(ip);
+    
+    // Copy payload
+    memcpy(ip_payload, data, data_length);
+    
+    size_t frame_length = sizeof(eth_header_t) + sizeof(ipv4_header_t) + data_length;
+    return network_send_frame(frame, frame_length);
 }
 
 // UDP: Send packet
@@ -520,9 +565,34 @@ int udp_send_packet(const ipv4_address_t* dest_ip, uint16_t dest_port,
     return ipv4_send_packet(dest_ip, IP_PROTO_UDP, udp_packet, udp_packet_length);
 }
 
+// UDP: Send packet to specific MAC address
+int udp_send_packet_to_mac(const ipv4_address_t* dest_ip, const mac_address_t* dest_mac,
+                           uint16_t dest_port, uint16_t src_port, 
+                           const void* data, size_t data_length) {
+    if (!network_initialized) {
+        return -1;
+    }
+    
+    uint8_t udp_packet[ETH_FRAME_MAX_SIZE];
+    udp_header_t* udp = (udp_header_t*)udp_packet;
+    void* udp_payload = udp_packet + sizeof(udp_header_t);
+    
+    // UDP header
+    udp->src_port = htons(src_port);
+    udp->dest_port = htons(dest_port);
+    udp->length = htons(sizeof(udp_header_t) + data_length);
+    udp->checksum = 0;  // Optional for IPv4, set to 0 for now
+    
+    // Copy payload
+    memcpy(udp_payload, data, data_length);
+    
+    size_t udp_packet_length = sizeof(udp_header_t) + data_length;
+    return ipv4_send_packet_to_mac(dest_ip, dest_mac, IP_PROTO_UDP, udp_packet, udp_packet_length);
+}
+
 // UDP: Process received packet
 void udp_process_packet(const udp_header_t* udp, const ipv4_address_t* src_ip,
-                        size_t length) {
+                        const mac_address_t* src_mac, size_t length) {
     if (length < sizeof(udp_header_t)) {
         return;
     }
@@ -542,7 +612,7 @@ void udp_process_packet(const udp_header_t* udp, const ipv4_address_t* src_ip,
     for (int i = 0; i < UDP_MAX_CALLBACKS; i++) {
         if (udp_callbacks[i].valid && udp_callbacks[i].port == dest_port) {
             udp_callbacks_called_count++;  // Debug counter
-            udp_callbacks[i].callback(src_ip, src_port, payload, payload_length);
+            udp_callbacks[i].callback(src_ip, src_port, src_mac, payload, payload_length);
             return;
         }
     }
@@ -729,8 +799,10 @@ static uint8_t dhcp_get_option(const uint8_t* opts, uint8_t code) {
     return 0;
 }
 
-static void dhcp_udp_callback(const ipv4_address_t* src_ip, uint16_t src_port, void* payload, size_t payload_length) {
+static void dhcp_udp_callback(const ipv4_address_t* src_ip, uint16_t src_port, 
+                              const mac_address_t* src_mac, const void* payload, size_t payload_length) {
     (void)src_ip;
+    (void)src_mac;
     if (src_port != DHCP_SERVER_PORT || payload_length < sizeof(dhcp_packet_t) - 312) {
         return;
     }
@@ -803,9 +875,13 @@ int network_dhcp_acquire(void) {
     ipv4_address_t bcast = {{255, 255, 255, 255}};
     (void)udp_send_packet(&bcast, DHCP_SERVER_PORT, DHCP_CLIENT_PORT, &pkt, sizeof(dhcp_packet_t));
     
-    // Poll for OFFER
-    for (int i = 0; i < 50000 && dhcp_state == 0; i++) {
+    
+    for (int i = 0; i < 500000 && dhcp_state == 0; i++) {
         network_process_frames();
+        // Add a small delay every 1000 iterations
+        if (i % 1000 == 0) {
+            for (volatile int d = 0; d < 100000; d++) {}
+        }
     }
     if (dhcp_state != 1) {
         return -1;
@@ -815,9 +891,13 @@ int network_dhcp_acquire(void) {
     dhcp_build_request(&pkt);
     (void)udp_send_packet(&bcast, DHCP_SERVER_PORT, DHCP_CLIENT_PORT, &pkt, sizeof(dhcp_packet_t));
     
-    // Poll for ACK
-    for (int i = 0; i < 50000 && dhcp_state == 1; i++) {
+    // Poll for ACK - allow up to 500000 iterations
+    for (int i = 0; i < 500000 && dhcp_state == 1; i++) {
         network_process_frames();
+        // Add a small delay every 1000 iterations
+        if (i % 1000 == 0) {
+            for (volatile int d = 0; d < 100000; d++) {}
+        }
     }
     return (dhcp_state == 2) ? 0 : -1;
 }

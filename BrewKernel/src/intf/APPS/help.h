@@ -40,10 +40,15 @@ static void display_help() {
     brew_str("  PWD     - Print working directory\n");
     brew_str("  MKDIR   - Create one or more directories\n");
     brew_str("  RM      - Remove a file or empty directory\n");
+    brew_str("  CAT     - Display file contents\n");
+    brew_str("  TOUCH   - Create an empty file\n");
+    brew_str("  ECHO    - Print text (can redirect to file with >)\n");
     brew_str("  NETINIT - Initialize network card\n");
     brew_str("  NETINFO - Show network status (MAC, IP)\n");
     brew_str("  UDPTEST - Start UDP echo server on port 12345 (broken)\n");
-    brew_str("  UDPSEND - Send UDP packet (UDPSEND <ip> <port> <msg>)");
+    brew_str("  UDPSEND - Send UDP packet (UDPSEND <ip> <port> <msg>)\n");
+    brew_str("\nPipe support:\n");
+    brew_str("  CAT <file> | UDPSEND <ip> <port> - Send file contents via UDP\n");
 }
 
 #endif // APPS_HELP_H

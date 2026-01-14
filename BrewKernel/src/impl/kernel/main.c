@@ -178,6 +178,17 @@ static int split_command(char *cmd, char *args[], int max_args) {
     return arg_count;
 }
 
+// Find pipe operator in command string
+static const char* find_pipe(const char* cmd) {
+    while (*cmd) {
+        if (*cmd == '|') {
+            return cmd;
+        }
+        cmd++;
+    }
+    return NULL;
+}
+
 static void process_command(void) {
     command_buffer[buffer_pos] = '\0';
     
@@ -191,6 +202,161 @@ static void process_command(void) {
                      : command_buffer[i];
     }
     cmd_upper[i] = '\0';  
+    
+    // Check for pipe operator
+    const char* pipe_pos = find_pipe(command_buffer);
+    if (pipe_pos) {
+        // Handle piped commands
+        char left_cmd[256] = {0};
+        char right_cmd[256] = {0};
+        
+        // Extract left command (before pipe)
+        size_t left_len = pipe_pos - command_buffer;
+        if (left_len >= sizeof(left_cmd)) left_len = sizeof(left_cmd) - 1;
+        for (size_t j = 0; j < left_len; j++) {
+            left_cmd[j] = command_buffer[j];
+        }
+        left_cmd[left_len] = '\0';
+        
+        // Trim trailing spaces from left command
+        while (left_len > 0 && left_cmd[left_len - 1] == ' ') {
+            left_cmd[--left_len] = '\0';
+        }
+        
+        // Extract right command (after pipe)
+        const char* right_start = pipe_pos + 1;
+        while (*right_start == ' ') right_start++;
+        
+        size_t right_len = 0;
+        while (right_start[right_len] && right_len < sizeof(right_cmd) - 1) {
+            right_cmd[right_len] = right_start[right_len];
+            right_len++;
+        }
+        right_cmd[right_len] = '\0';
+        
+        // Trim trailing spaces from right command
+        while (right_len > 0 && right_cmd[right_len - 1] == ' ') {
+            right_cmd[--right_len] = '\0';
+        }
+        
+        // Handle pipe: extract content from left command and pass to right command
+        // Currently support: CAT <file> | UDPSEND <ip> <port>
+        
+        char left_upper[256] = {0};
+        for (i = 0; left_cmd[i]; i++) {
+            left_upper[i] = left_cmd[i] >= 'a' && left_cmd[i] <= 'z' 
+                          ? left_cmd[i] - 32 
+                          : left_cmd[i];
+        }
+        left_upper[i] = '\0';
+        
+        char right_upper[256] = {0};
+        for (i = 0; right_cmd[i]; i++) {
+            right_upper[i] = right_cmd[i] >= 'a' && right_cmd[i] <= 'z' 
+                           ? right_cmd[i] - 32 
+                           : right_cmd[i];
+        }
+        right_upper[i] = '\0';
+        
+        // Handle CAT command piped
+        if (strncmp_kernel(left_upper, "CAT ", 4) == 0) {
+            const char* file_path = left_cmd + 4;
+            while (*file_path == ' ') file_path++;
+            
+            size_t file_size = 0;
+            const char* file_content = fs_read_file_at_path(file_path, &file_size);
+            
+            if (file_content && file_size > 0) {
+                // Limit file size to prevent overflow
+                if (file_size > 4096) {
+                    brew_str("\nFile too large (max 4KB for UDP pipe)\n");
+                } else if (strncmp_kernel(right_upper, "UDPSEND ", 8) == 0) {
+                    // Parse UDPSEND arguments from right_cmd
+                    const char* args = right_cmd + 8;
+                    while (*args == ' ') args++;
+                    
+                    brew_str("\n");
+                    if (!network_is_initialized()) {
+                        brew_str("Network not initialized. Use NETINIT first.\n");
+                    } else {
+                        // Parse IP address
+                        ipv4_address_t dest_ip;
+                        int ip_bytes[4] = {0};
+                        int ip_idx = 0;
+                        int current = 0;
+                        const char* p = args;
+                        
+                        // Parse IP
+                        while (*p && ip_idx < 4) {
+                            if (*p >= '0' && *p <= '9') {
+                                current = current * 10 + (*p - '0');
+                            } else if (*p == '.' || *p == ' ') {
+                                ip_bytes[ip_idx++] = current;
+                                current = 0;
+                                if (*p == ' ') break;
+                            }
+                            p++;
+                        }
+                        if (ip_idx < 4 && current > 0) {
+                            ip_bytes[ip_idx++] = current;
+                        }
+                        for (int k = 0; k < 4; k++) {
+                            dest_ip.bytes[k] = (uint8_t)ip_bytes[k];
+                        }
+                        
+                        // Parse port
+                        while (*p == ' ') p++;
+                        int port = 0;
+                        while (*p >= '0' && *p <= '9') {
+                            port = port * 10 + (*p - '0');
+                            p++;
+                        }
+                        
+                        // Send UDP packet(s) with file content (chunked if necessary)
+                        const size_t chunk_size = 512;
+                        size_t offset = 0;
+                        int chunk_count = 0;
+                        int sent_bytes = 0;
+                        
+                        while (offset < file_size) {
+                            size_t to_send = file_size - offset;
+                            if (to_send > chunk_size) {
+                                to_send = chunk_size;
+                            }
+                            
+                            // Send directly from file content pointer
+                            int result = udp_send_packet(&dest_ip, (uint16_t)port, 54321, 
+                                                        (const void*)(file_content + offset), to_send);
+                            if (result == 0) {
+                                chunk_count++;
+                                sent_bytes += to_send;
+                            }
+                            offset += to_send;
+                        }
+                        
+                        if (sent_bytes > 0) {
+                            brew_str("UDP packets sent successfully (");
+                            brew_str("multiple chunks)\n");
+                        } else {
+                            brew_str("Failed to send UDP packets\n");
+                        }
+                    }
+                } else {
+                    brew_str("Unsupported command after pipe\n");
+                }
+            } else {
+                brew_str("cat: cannot open '");
+                brew_str(file_path);
+                brew_str("': No such file or directory\n");
+            }
+        } else {
+            brew_str("Unsupported command in pipe (left side must be CAT)\n");
+        }
+        
+        buffer_pos = 0;
+        brew_str("\nbrew> ");
+        return;
+    }
     
     bool return_to_prompt = true;
     
@@ -589,7 +755,11 @@ void kernel_main(void* multiboot_info) {
 #endif
 
     while (1) {
-        net_check_udp_received();
+        // Process network frames continuously
+        for (int i = 0; i < 10; i++) {
+            network_process_frames();
+        }
+        net_check_udp_received();  // Check for and print UDP receive notifications
         
         if (check_keyboard()) {
             unsigned char scan_code = read_scan_code();
@@ -635,6 +805,10 @@ void kernel_main(void* multiboot_info) {
                             process_command();
                         }
                         
+                        // Process network frames after command execution
+                        for (int i = 0; i < 10; i++) {
+                            network_process_frames();
+                        }
                         net_check_udp_received();
                     } else if (buffer_pos < sizeof(command_buffer) - 1) {
                         history_current = -1;

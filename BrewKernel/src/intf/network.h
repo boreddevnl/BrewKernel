@@ -134,17 +134,22 @@ int network_dhcp_acquire(void);
 // IPv4 functions
 int ipv4_send_packet(const ipv4_address_t* dest_ip, uint8_t protocol,
                      const void* data, size_t data_length);
-void ipv4_process_packet(const ipv4_header_t* ip, size_t length);
+int ipv4_send_packet_to_mac(const ipv4_address_t* dest_ip, const mac_address_t* dest_mac,
+                            uint8_t protocol, const void* data, size_t data_length);
+void ipv4_process_packet(const ipv4_header_t* ip, const mac_address_t* src_mac, size_t length);
 
 // UDP functions
 int udp_send_packet(const ipv4_address_t* dest_ip, uint16_t dest_port,
                     uint16_t src_port, const void* data, size_t data_length);
+int udp_send_packet_to_mac(const ipv4_address_t* dest_ip, const mac_address_t* dest_mac,
+                           uint16_t dest_port, uint16_t src_port, 
+                           const void* data, size_t data_length);
 void udp_process_packet(const udp_header_t* udp, const ipv4_address_t* src_ip,
-                        size_t length);
+                        const mac_address_t* src_mac, size_t length);
 
 // UDP socket callback type
 typedef void (*udp_callback_t)(const ipv4_address_t* src_ip, uint16_t src_port,
-                                const void* data, size_t length);
+                                const mac_address_t* src_mac, const void* data, size_t length);
 
 // Register UDP callback for a port
 int udp_register_callback(uint16_t port, udp_callback_t callback);

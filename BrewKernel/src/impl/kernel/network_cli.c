@@ -51,14 +51,39 @@ static int udp_received_flag = 0;
 static ipv4_address_t udp_received_src_ip;
 static uint16_t udp_received_src_port;
 static uint16_t udp_received_length;
+static uint16_t udp_message_length;  // Actual length of stored message
+#define UDP_MESSAGE_BUFFER_SIZE 256
+static char udp_received_message[UDP_MESSAGE_BUFFER_SIZE] = {0};  // Initialize to zeros
 
 static void udp_echo_callback(const ipv4_address_t* src_ip, uint16_t src_port,
-			      const void* data, size_t length) {
+			      const mac_address_t* src_mac, const void* data, size_t length) {
 	udp_received_flag = 1;
 	udp_received_src_ip = *src_ip;
 	udp_received_src_port = src_port;
 	udp_received_length = (uint16_t)length;
-	udp_send_packet(src_ip, src_port, 12345, data, length);
+	
+	// Store message data (with size limit)
+	size_t copy_len = length;
+	if (copy_len > UDP_MESSAGE_BUFFER_SIZE) {
+		copy_len = UDP_MESSAGE_BUFFER_SIZE;
+	}
+	udp_message_length = (uint16_t)copy_len;
+	
+	// Clear buffer first
+	for (int i = 0; i < UDP_MESSAGE_BUFFER_SIZE; i++) {
+		udp_received_message[i] = 0;
+	}
+	
+	// Copy message data - copy raw bytes directly
+	if (data && copy_len > 0) {
+		const uint8_t* src = (const uint8_t*)data;
+		for (size_t i = 0; i < copy_len; i++) {
+			udp_received_message[i] = src[i];
+		}
+	}
+	
+	// Echo back the data as-is
+	udp_send_packet_to_mac(src_ip, src_mac, src_port, 12345, data, length);
 }
 
 void net_check_udp_received(void) {
@@ -118,6 +143,30 @@ void net_check_udp_received(void) {
 		}
 		num[pos] = '\0';
 		brew_str(num);
+		
+		// Only print message if we have data
+		if (udp_message_length > 0) {
+			brew_str(" - Message: \"");
+			
+			// Print the received message
+			for (uint16_t i = 0; i < udp_message_length; i++) {
+				char ch = udp_received_message[i];
+				// Print all bytes as-is, including non-printable
+				if (ch == '\n') {
+					brew_str("\\n");
+				} else if (ch == '\r') {
+					brew_str("\\r");
+				} else if (ch >= 32 && ch < 127) {
+					char buf[2] = {ch, '\0'};
+					brew_str(buf);
+				} else {
+					brew_str("?");
+				}
+			}
+			
+			brew_str("\"");
+		}
+		
 		brew_str("\n");
 	}
 }
@@ -329,6 +378,7 @@ static void handle_netinit(void) {
 	}
 	if (network_init() == 0) {
 		brew_str("Network initialized successfully\n");
+		brew_str("Use IPSET to configure IP address (e.g., IPSET 10.0.2.15)\n");
 	} else {
 		brew_str("Network initialization failed\n");
 	}
@@ -342,17 +392,119 @@ static void handle_udptest(int* return_to_prompt) {
 		if (return_to_prompt) *return_to_prompt = 1;
 		return;
 	}
+	
+	// Print current network info
+	ipv4_address_t ip;
+	if (network_get_ipv4_address(&ip) == 0) {
+		brew_str("Current IP: ");
+		char num[4];
+		for (int i = 0; i < 4; i++) {
+			if (i > 0) brew_str(".");
+			int n = ip.bytes[i];
+			int pos = 0;
+			if (n >= 100) {
+				num[pos++] = '0' + (n / 100);
+				n %= 100;
+			}
+			if (n >= 10 || pos > 0) {
+				num[pos++] = '0' + (n / 10);
+				n %= 10;
+			}
+			num[pos++] = '0' + n;
+			num[pos] = '\0';
+			brew_str(num);
+		}
+		brew_str("\n");
+	} else {
+		brew_str("ERROR: Could not get IP address\n");
+		return;
+	}
+	
 	if (!udp_test_active) {
 		if (udp_register_callback(12345, udp_echo_callback) == 0) {
 			brew_str("UDP echo server started on port 12345\n");
 			brew_str("Listening for packets...\n");
 			brew_str("Send UDP packets to this IP:port from another machine\n");
+			brew_str("(Press Ctrl+C to stop, or use NETINFO to check stats)\n");
 			udp_test_active = 1;
 		} else {
 			brew_str("Failed to register UDP callback\n");
 		}
 	} else {
 		brew_str("UDP test already active on port 12345\n");
+	}
+}
+
+static void handle_ipset(const char* command_buffer) {
+	brew_str("\n");
+	if (!network_is_initialized()) {
+		brew_str("Network not initialized. Use NETINIT first.\n");
+		return;
+	}
+	
+	const char* args = &command_buffer[5];  // Skip "IPSET"
+	while (*args == ' ') args++;
+	
+	if (*args == '\0') {
+		brew_str("Usage: IPSET <ip address>\n");
+		brew_str("Example: IPSET 10.0.2.15\n");
+		return;
+	}
+	
+	ipv4_address_t ip;
+	int ip_bytes[4] = {0};
+	int ip_idx = 0;
+	int current = 0;
+	const char* p = args;
+	
+	while (*p && ip_idx < 4) {
+		if (*p >= '0' && *p <= '9') {
+			current = current * 10 + (*p - '0');
+		} else if (*p == '.' || *p == ' ' || *p == '\0') {
+			if (ip_idx < 4) {
+				ip_bytes[ip_idx++] = current;
+			}
+			current = 0;
+			if (*p != '.') break;
+		}
+		p++;
+	}
+	
+	if (ip_idx < 4 && current > 0) {
+		ip_bytes[ip_idx++] = current;
+	}
+	
+	if (ip_idx != 4) {
+		brew_str("Invalid IP address format\n");
+		return;
+	}
+	
+	for (int i = 0; i < 4; i++) {
+		ip.bytes[i] = (uint8_t)ip_bytes[i];
+	}
+	
+	if (network_set_ipv4_address(&ip) == 0) {
+		brew_str("IP address set to ");
+		char num[4];
+		for (int i = 0; i < 4; i++) {
+			if (i > 0) brew_str(".");
+			int n = ip.bytes[i];
+			int pos = 0;
+			if (n >= 100) {
+				num[pos++] = '0' + (n / 100);
+				n %= 100;
+			}
+			if (n >= 10 || pos > 0) {
+				num[pos++] = '0' + (n / 10);
+				n %= 10;
+			}
+			num[pos++] = '0' + n;
+			num[pos] = '\0';
+			brew_str(num);
+		}
+		brew_str("\n");
+	} else {
+		brew_str("Failed to set IP address\n");
 	}
 }
 
@@ -418,6 +570,11 @@ int net_handle_command(const char* cmd_upper, const char* command_buffer, int* r
 	}
 	if (strcmp_kernel_cli(cmd_upper, "NETINIT") == 0) {
 		handle_netinit();
+		return 1;
+	}
+	if (strcmp_kernel_cli(cmd_upper, "IPSET") == 0 ||
+	    (brew_strlen_cli(cmd_upper) > 5 && strncmp_kernel_cli(cmd_upper, "IPSET ", 6) == 0)) {
+		handle_ipset(command_buffer);
 		return 1;
 	}
 	if (strcmp_kernel_cli(cmd_upper, "UDPTEST") == 0 ||
