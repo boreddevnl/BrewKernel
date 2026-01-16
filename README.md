@@ -67,11 +67,11 @@ Or run Brew on actual hardware. </br>
     ```
     Tested Hardware:
     HP EliteDesk 705 G4 DM 65W SBKPF 
-     CPU:   AMD Ryzen 5 PRO 2400G (8) @ 3.600GHz
-     GPU:   AMD ATI Radeon Vega Series (VGA ONLY.)
+        CPU:   AMD Ryzen 5 PRO 2400G (8) @ 3.600GHz
+        GPU:   AMD ATI Radeon Vega Series (VGA ONLY.)
     Lenovo ThinkPad A475 20KL002VMH
-    CPU: AMD Pro A12-8830B
-    GPU:  Radeon R7 Series GPU (Internal Display)
+        CPU: AMD Pro A12-8830B
+        GPU:  Radeon R7 Series GPU (Internal Display)
     ```
 - Step 4:
     Enable legacy boot in your BIOS
