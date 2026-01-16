@@ -45,7 +45,7 @@ static void display_help() {
     brew_str("  ECHO    - Print text (can redirect to file with >)\n");
     brew_str("  NETINIT - Initialize network card\n");
     brew_str("  NETINFO - Show network status (MAC, IP)\n");
-    brew_str("  UDPTEST - Start UDP echo server on port 12345 (broken)\n");
+    brew_str("  UDPTEST - Start UDP echo server on port 12345\n");
     brew_str("  UDPSEND - Send UDP packet (UDPSEND <ip> <port> <msg>)\n");
     brew_str("\nPipe support:\n");
     brew_str("  CAT <file> | UDPSEND <ip> <port> - Send file contents via UDP\n");
