@@ -26,7 +26,7 @@ It features a custom bootloader, VGA text mode output with customizable colors, 
 To build the kernel, you'll need Docker installed on your system. The build environment is containerized to ensure consistency across different systems.
 
 ## Building
-### Don't want to compile it yourself? grab the [latest "stable" version](https://github.com/BoredDevNL/BrewKernel/tree/main/BrewKernel/dist/x86_64)
+### Don't want to compile it yourself? grab the [latest patch or full release](https://github.com/BoredDevNL/BrewKernel/releases)
 1. First, build the Docker container for the build environment:
 
 ```sh
