@@ -20,7 +20,7 @@
 
 // Memory management for file content using a free list allocator
 
-#define MEMORY_SIZE 67108864  // 64MB - sufficient for DOOM WAD files and zone memory
+#define MEMORY_SIZE 67108864  
 #define ALIGNMENT 8  // Align blocks to 8 bytes
 #define MIN_BLOCK_SIZE (sizeof(BlockHeader) + ALIGNMENT)
 
@@ -53,44 +53,37 @@ static void init_memory(void) {
     memory_initialized = 1;
 }
 
-// Split a free block if it's large enough
 static void split_block(BlockHeader* block, size_t size) {
     size_t remaining = block->size - size;
     if (remaining >= MIN_BLOCK_SIZE) {
-        // Create new free block from remaining space
         BlockHeader* new_block = (BlockHeader*)((char*)block + sizeof(BlockHeader) + size);
         new_block->size = remaining - sizeof(BlockHeader);
         new_block->is_free = 1;
-        new_block->next = free_list;  // Add to free list
+        new_block->next = free_list;  
         
         block->size = size;
-        free_list = new_block;  // Add new block to free list
+        free_list = new_block;  
     }
 }
 
-// Coalesce adjacent free blocks
 static void coalesce_blocks(void) {
     BlockHeader* current = (BlockHeader*)memory_pool;
     BlockHeader* end = (BlockHeader*)(memory_pool + MEMORY_SIZE);
     
-    int max_iterations = MEMORY_SIZE / sizeof(BlockHeader); // Safety limit
+    int max_iterations = MEMORY_SIZE / sizeof(BlockHeader); 
     int iterations = 0;
     
     while ((char*)current < (char*)end && iterations < max_iterations) {
         iterations++;
         
-        // Safety check: block size must be reasonable
         if (current->size == 0 || current->size > MEMORY_SIZE) {
-            break;  // Corrupted allocator state, stop
+            break;  
         }
         
         if (current->is_free) {
-            // Check if next block is adjacent and free
             BlockHeader* next = (BlockHeader*)((char*)current + sizeof(BlockHeader) + current->size);
             if ((char*)next < (char*)end && next->is_free) {
-                // Merge blocks
                 current->size += sizeof(BlockHeader) + next->size;
-                // Update free list
                 BlockHeader* prev = NULL;
                 BlockHeader* walk = free_list;
                 while (walk) {
@@ -105,11 +98,9 @@ static void coalesce_blocks(void) {
                     prev = walk;
                     walk = walk->next;
                 }
-                // Continue checking from current position
                 continue;
             }
         }
-        // Move to next block
         current = (BlockHeader*)((char*)current + sizeof(BlockHeader) + current->size);
     }
 }
@@ -119,18 +110,15 @@ void* fs_allocate(size_t size) {
     
     init_memory();
     
-    // Align size
     size = align_size(size);
     if (size < MIN_BLOCK_SIZE - sizeof(BlockHeader)) {
         size = MIN_BLOCK_SIZE - sizeof(BlockHeader);
     }
     
-    // Prevent requesting more than available
     if (size > MEMORY_SIZE - sizeof(BlockHeader)) {
         return NULL;
     }
     
-    // Find a suitable free block (limit iterations to prevent infinite loops)
     BlockHeader* prev = NULL;
     BlockHeader* current = free_list;
     int max_iterations = MEMORY_SIZE / sizeof(BlockHeader);
@@ -239,44 +227,36 @@ size_t fs_get_used_memory(void) {
 }
 
 size_t fs_get_free_memory(void) {
-    init_memory();  // Ensure memory is initialized
+    init_memory();  
     return MEMORY_SIZE - fs_get_used_memory();
 }
 
-// System memory detection using Multiboot info
 static size_t system_total_ram = 0;
 static int system_memory_initialized = 0;
 
-// Multiboot info structure (simplified - we only need memory fields)
 struct multiboot_info {
     uint32_t flags;
     uint32_t mem_lower;
     uint32_t mem_upper;
-    // ... other fields we don't need
+ 
 };
 
 void sys_memory_init(void* multiboot_info_ptr) {
     if (system_memory_initialized) return;
     
     if (!multiboot_info_ptr) {
-        // No multiboot info, assume default (e.g., 512MB)
-        system_total_ram = 512 * 1024 * 1024;  // 512MB default
+        system_total_ram = 512 * 1024 * 1024;  
         system_memory_initialized = 1;
         return;
     }
     
     struct multiboot_info* mb_info = (struct multiboot_info*)multiboot_info_ptr;
     
-    // Check if memory info is available (bit 0 of flags)
     if (mb_info->flags & 0x01) {
-        // mem_lower is in KB (typically 0-640KB)
-        // mem_upper is in KB (typically 1MB+)
-        // Total RAM = (mem_lower + mem_upper) * 1024 bytes
         uint32_t total_kb = mb_info->mem_lower + mb_info->mem_upper;
         system_total_ram = (size_t)total_kb * 1024;
     } else {
-        // Memory info not available, use default
-        system_total_ram = 512 * 1024 * 1024;  // 512MB default
+        system_total_ram = 512 * 1024 * 1024; 
     }
     
     system_memory_initialized = 1;
@@ -284,25 +264,16 @@ void sys_memory_init(void* multiboot_info_ptr) {
 
 size_t sys_get_total_ram(void) {
     if (!system_memory_initialized) {
-        // Not initialized yet, return default
-        return 512 * 1024 * 1024;  // 512MB default
+        return 512 * 1024 * 1024;  
     }
     return system_total_ram;
 }
 
 size_t sys_get_used_ram(void) {
-    // Estimate kernel memory usage:
-    // - File content pool: fs_get_used_memory()
-    // - Kernel code/data/stack: rough estimate
-    // - Static arrays and structures
-    
+
     size_t file_pool_used = fs_get_used_memory();
     
-    // Rough estimate of kernel overhead:
-    // - Kernel code: ~100KB (rough estimate)
-    // - Stack: 16KB (from boot code)
-    // - Static data: ~50KB (rough estimate)
-    // - Page tables: ~12KB (3 * 4KB)
+
     size_t kernel_overhead = 100 * 1024 + 16 * 1024 + 50 * 1024 + 12 * 1024;  // ~178KB
     
     return file_pool_used + kernel_overhead;
@@ -312,6 +283,6 @@ size_t sys_get_free_ram(void) {
     size_t total = sys_get_total_ram();
     size_t used = sys_get_used_ram();
     
-    if (used > total) return 0;  // Safety check
+    if (used > total) return 0; 
     return total - used;
 }

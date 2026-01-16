@@ -18,12 +18,10 @@
 
 #include "shell_cli.h"
 
-// Returns 1 if handled, 0 otherwise. May modify *return_to_prompt (1/0).
 int shell_handle_command(const char* cmd_upper, char* command_buffer, int* return_to_prompt) {
     (void)cmd_upper;
     (void)command_buffer;
     (void)return_to_prompt;
     
-    // No shell-specific commands handled yet
     return 0;
 }

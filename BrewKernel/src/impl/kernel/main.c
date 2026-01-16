@@ -54,10 +54,9 @@
 #include "shell_cli.h"
 #include "APPS/calc.h"
 
-// External assembly function to initialize IDT
 extern void init_idt(void);
 
-// Enable to automatically enter the CLI on boot. Set to 0 to disable this, probably no reason to do this might be handy though.
+// Enable to automatically enter the CLI on boot. Set to 0 to disable this (probably no reason to do this) but it *might* be handy for some dumb reason.
 #ifndef AUTO_START_CLI
 #define AUTO_START_CLI 1
 #endif
@@ -70,16 +69,16 @@ static int strcmp_kernel(const char *s1, const char *s2) {
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
-// CLI state and buffer
+// DONT TOUCH this
 static char command_buffer[256];
 int buffer_pos = 0;
 
-// Command history
+// same here, shit likes to break if you do
 #define HISTORY_SIZE 10
 static char command_history[HISTORY_SIZE][256];
-static int history_count = 0;      // Number of commands in history
-static int history_current = -1;    // Current position in history while navigating
-static int history_newest = -1;     // Index of the most recent command
+static int history_count = 0;      
+static int history_current = -1;    
+static int history_newest = -1;     
 static int in_cli_mode = 0;
 static int timezone_offset_h = 0;
 static int timezone_offset_m = 0;
@@ -178,7 +177,6 @@ static int split_command(char *cmd, char *args[], int max_args) {
     return arg_count;
 }
 
-// Find pipe operator in command string
 static const char* find_pipe(const char* cmd) {
     while (*cmd) {
         if (*cmd == '|') {
@@ -203,14 +201,11 @@ static void process_command(void) {
     }
     cmd_upper[i] = '\0';  
     
-    // Check for pipe operator
     const char* pipe_pos = find_pipe(command_buffer);
     if (pipe_pos) {
-        // Handle piped commands
         char left_cmd[256] = {0};
         char right_cmd[256] = {0};
         
-        // Extract left command (before pipe)
         size_t left_len = pipe_pos - command_buffer;
         if (left_len >= sizeof(left_cmd)) left_len = sizeof(left_cmd) - 1;
         for (size_t j = 0; j < left_len; j++) {
@@ -218,12 +213,10 @@ static void process_command(void) {
         }
         left_cmd[left_len] = '\0';
         
-        // Trim trailing spaces from left command
         while (left_len > 0 && left_cmd[left_len - 1] == ' ') {
             left_cmd[--left_len] = '\0';
         }
         
-        // Extract right command (after pipe)
         const char* right_start = pipe_pos + 1;
         while (*right_start == ' ') right_start++;
         
@@ -234,13 +227,9 @@ static void process_command(void) {
         }
         right_cmd[right_len] = '\0';
         
-        // Trim trailing spaces from right command
         while (right_len > 0 && right_cmd[right_len - 1] == ' ') {
             right_cmd[--right_len] = '\0';
         }
-        
-        // Handle pipe: extract content from left command and pass to right command
-        // Currently support: CAT <file> | UDPSEND <ip> <port>
         
         char left_upper[256] = {0};
         for (i = 0; left_cmd[i]; i++) {
@@ -258,7 +247,6 @@ static void process_command(void) {
         }
         right_upper[i] = '\0';
         
-        // Handle CAT command piped
         if (strncmp_kernel(left_upper, "CAT ", 4) == 0) {
             const char* file_path = left_cmd + 4;
             while (*file_path == ' ') file_path++;
@@ -267,11 +255,9 @@ static void process_command(void) {
             const char* file_content = fs_read_file_at_path(file_path, &file_size);
             
             if (file_content && file_size > 0) {
-                // Limit file size to prevent overflow
                 if (file_size > 4096) {
-                    brew_str("\nFile too large (max 4KB for UDP pipe)\n");
+                    brew_str("\nFile too large (max 4KB for UDP pipe)\n"); // dont touch this youll get a stack overflow and break the system <3
                 } else if (strncmp_kernel(right_upper, "UDPSEND ", 8) == 0) {
-                    // Parse UDPSEND arguments from right_cmd
                     const char* args = right_cmd + 8;
                     while (*args == ' ') args++;
                     
@@ -279,7 +265,6 @@ static void process_command(void) {
                     if (!network_is_initialized()) {
                         brew_str("Network not initialized. Use NETINIT first.\n");
                     } else {
-                        // Parse IP address
                         ipv4_address_t dest_ip;
                         int ip_bytes[4] = {0};
                         int ip_idx = 0;
@@ -304,7 +289,6 @@ static void process_command(void) {
                             dest_ip.bytes[k] = (uint8_t)ip_bytes[k];
                         }
                         
-                        // Parse port
                         while (*p == ' ') p++;
                         int port = 0;
                         while (*p >= '0' && *p <= '9') {
@@ -312,7 +296,6 @@ static void process_command(void) {
                             p++;
                         }
                         
-                        // Send UDP packet(s) with file content (chunked if necessary)
                         const size_t chunk_size = 512;
                         size_t offset = 0;
                         int chunk_count = 0;
@@ -324,7 +307,6 @@ static void process_command(void) {
                                 to_send = chunk_size;
                             }
                             
-                            // Send directly from file content pointer
                             int result = udp_send_packet(&dest_ip, (uint16_t)port, 54321, 
                                                         (const void*)(file_content + offset), to_send);
                             if (result == 0) {
@@ -359,7 +341,9 @@ static void process_command(void) {
     }
     
     bool return_to_prompt = true;
-    
+    // command handlind here, it isn't the best solution but it works
+    // You basically just add a new .h file for your app, include whatever modules you need in that file
+    // and then call the function here in the if-else chain. (super efficient 100%)
     if (strcmp_kernel(cmd_upper, "HELP") == 0) {
         display_help();
     }
@@ -484,19 +468,17 @@ static void process_command(void) {
         const char* args = command_buffer + 5;
         while (*args == ' ') args++;
         
-        // Look for redirection operator >
         char redirect_path[256] = {0};
         const char* redirect_pos = args;
         bool found_redirect = false;
         int redirect_idx = 0;
         
-        // Find the > character
         while (*redirect_pos) {
             if (*redirect_pos == '>') {
                 found_redirect = true;
-                redirect_pos++; // skip the >
-                while (*redirect_pos == ' ') redirect_pos++; // skip spaces
-                // Copy redirect path
+                redirect_pos++; 
+                while (*redirect_pos == ' ') redirect_pos++; 
+
                 redirect_idx = 0;
                 while (*redirect_pos && redirect_idx < 255) {
                     redirect_path[redirect_idx++] = *redirect_pos;
@@ -509,8 +491,6 @@ static void process_command(void) {
         }
         
         if (found_redirect && redirect_path[0] != '\0') {
-            // Write to file
-            // Get the text to echo (everything before >)
             char echo_text[256] = {0};
             int text_idx = 0;
             const char* text_ptr = args;
@@ -520,7 +500,6 @@ static void process_command(void) {
             }
             echo_text[text_idx] = '\0';
             
-            // Trim trailing spaces from echo text
             while (text_idx > 0 && echo_text[text_idx - 1] == ' ') {
                 echo_text[--text_idx] = '\0';
             }
@@ -531,7 +510,6 @@ static void process_command(void) {
                 brew_str("'\n");
             }
         } else {
-            // Just print to console
             brew_str("\n");
             brew_str(args);
             brew_str("\n");
@@ -755,17 +733,15 @@ void kernel_main(void* multiboot_info) {
 #endif
 
     while (1) {
-        // Process network frames continuously
         for (int i = 0; i < 10; i++) {
             network_process_frames();
         }
-        net_check_udp_received();  // Check for and print UDP receive notifications
+        net_check_udp_received(); 
         
         if (check_keyboard()) {
             unsigned char scan_code = read_scan_code();
             
-            // special keys
-            if (scan_code == 0x0E) {  // Backspace
+            if (scan_code == 0x0E) { 
                 if (buffer_pos > 0) {
                     buffer_pos--;
                     print_backspace();
@@ -775,10 +751,8 @@ void kernel_main(void* multiboot_info) {
             } else if (scan_code == SCAN_CODE_DOWN_ARROW && in_cli_mode) {
                 navigate_history(1);   // Navigate forwards in history
             } else {
-                // Convert scan code to ASCII and print if it's a printable character
                 char ascii_char = scan_code_to_ascii(scan_code);
                 if (ascii_char != 0) {
-                    // Handle special characters
                     if (ascii_char == '\n' || ascii_char == '\r') {
                         if (!in_cli_mode) {
                             command_buffer[buffer_pos] = '\0';
@@ -804,8 +778,7 @@ void kernel_main(void* multiboot_info) {
                         } else {
                             process_command();
                         }
-                        
-                        // Process network frames after command execution
+
                         for (int i = 0; i < 10; i++) {
                             network_process_frames();
                         }

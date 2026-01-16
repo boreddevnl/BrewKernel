@@ -45,15 +45,14 @@ static int brew_strlen_cli(const char* s) {
 	return n;
 }
 
-// UDP test state and echo callback moved from main.c
 static int udp_test_active = 0;
 static int udp_received_flag = 0;
 static ipv4_address_t udp_received_src_ip;
 static uint16_t udp_received_src_port;
 static uint16_t udp_received_length;
-static uint16_t udp_message_length;  // Actual length of stored message
+static uint16_t udp_message_length; 
 #define UDP_MESSAGE_BUFFER_SIZE 256
-static char udp_received_message[UDP_MESSAGE_BUFFER_SIZE] = {0};  // Initialize to zeros
+static char udp_received_message[UDP_MESSAGE_BUFFER_SIZE] = {0};  
 
 static void udp_echo_callback(const ipv4_address_t* src_ip, uint16_t src_port,
 			      const mac_address_t* src_mac, const void* data, size_t length) {
@@ -62,19 +61,16 @@ static void udp_echo_callback(const ipv4_address_t* src_ip, uint16_t src_port,
 	udp_received_src_port = src_port;
 	udp_received_length = (uint16_t)length;
 	
-	// Store message data (with size limit)
 	size_t copy_len = length;
 	if (copy_len > UDP_MESSAGE_BUFFER_SIZE) {
 		copy_len = UDP_MESSAGE_BUFFER_SIZE;
 	}
 	udp_message_length = (uint16_t)copy_len;
 	
-	// Clear buffer first
 	for (int i = 0; i < UDP_MESSAGE_BUFFER_SIZE; i++) {
 		udp_received_message[i] = 0;
 	}
 	
-	// Copy message data - copy raw bytes directly
 	if (data && copy_len > 0) {
 		const uint8_t* src = (const uint8_t*)data;
 		for (size_t i = 0; i < copy_len; i++) {
@@ -82,7 +78,6 @@ static void udp_echo_callback(const ipv4_address_t* src_ip, uint16_t src_port,
 		}
 	}
 	
-	// Echo back the data as-is
 	udp_send_packet_to_mac(src_ip, src_mac, src_port, 12345, data, length);
 }
 
@@ -144,14 +139,11 @@ void net_check_udp_received(void) {
 		num[pos] = '\0';
 		brew_str(num);
 		
-		// Only print message if we have data
 		if (udp_message_length > 0) {
 			brew_str(" - Message: \"");
 			
-			// Print the received message
 			for (uint16_t i = 0; i < udp_message_length; i++) {
 				char ch = udp_received_message[i];
-				// Print all bytes as-is, including non-printable
 				if (ch == '\n') {
 					brew_str("\\n");
 				} else if (ch == '\r') {
@@ -393,7 +385,6 @@ static void handle_udptest(int* return_to_prompt) {
 		return;
 	}
 	
-	// Print current network info
 	ipv4_address_t ip;
 	if (network_get_ipv4_address(&ip) == 0) {
 		brew_str("Current IP: ");
@@ -442,7 +433,7 @@ static void handle_ipset(const char* command_buffer) {
 		return;
 	}
 	
-	const char* args = &command_buffer[5];  // Skip "IPSET"
+	const char* args = &command_buffer[5];  
 	while (*args == ' ') args++;
 	
 	if (*args == '\0') {
